@@ -5,7 +5,7 @@ CSS und JavaScript sind eingebettet; neben der HTML-Datei gibt es keine weiteren
 
 Ausgelegt auf etwa 30–40 Bilder pro Album, für Desktop und Handy, mit hellem und dunklem Design.
 
-Stand: Version `1.4-poc`. Das Panorama-Widget ist ein Proof of Concept, siehe [SPEC.md](SPEC.md).
+Stand: Version `1.5`.
 
 ## Voraussetzungen
 
@@ -26,7 +26,8 @@ python fotoalbum.py build <Bilderordner>/album.toml
 - ein `[[bild]]`-Block pro Bild, sortiert nach Aufnahmezeit
 - `[[wegpunkt]]`-Blöcke aus den GPS-Daten der Fotos, falls vorhanden
 - ein auskommentiertes Beispiel für `[[station]]`
-- `panorama = true` bei sehr breiten Bildern
+- `panorama = true` bei sehr breiten Bildern, dazu `panorama_bildwinkel` mit dem aus den EXIF-Daten
+  berechneten Wert
 
 Eine vorhandene `album.toml` wird nur mit `--force` überschrieben.
 
@@ -64,7 +65,7 @@ datum = 2026-07-12            # optional
 [[bild]]
 datei = "IMG_0042.HEIC"
 panorama = true               # schwenkbares, entzerrtes Panorama über die volle Breite
-# panorama_bildwinkel = 54.3  # optional, überschreibt EXIF und [einstellungen]
+panorama_bildwinkel = 54.3    # von init aus EXIF berechnet; fehlt die Zeile, gilt EXIF, sonst [einstellungen]
 
 [[station]]                   # optional: Zeitleiste zwischen Kopf und Karte
 name = "Ferienwohnung"        # frei, z. B. "Tag 1" oder ein Datum
@@ -106,7 +107,8 @@ lon = 8.56780                 # Pflicht
 - **Einklappbar:** Stationen und Karte lassen sich getrennt ein- und ausklappen; am Desktop sind sie
   standardmäßig offen, am Handy zu (funktioniert ohne JavaScript)
 - **Karte** als eingebettetes Bild mit nummerierten Wegpunkten, wahlweise als Route verbunden
-- **Panorama**: zylindrische Panoramen werden per WebGL entzerrt und sind schwenk- und zoombar
+- **Panorama**: hochkant aufgenommene, seitwärts geschwenkte Panoramen werden per WebGL entzerrt; Ziehen
+  schwenkt, Plus/Minus, Doppelklick oder zwei Finger zoomen
 - **Ohne JavaScript** bleiben Raster, Unterschriften, Karte und Hell/Dunkel nach System erhalten
 
 ## Wissenswertes
@@ -123,7 +125,7 @@ lon = 8.56780                 # Pflicht
 
 ## Bekannte Lücken
 
-Nicht getestet sind bisher: echte iPhone-Fotos und -Panoramen, echte OpenStreetMap-Kacheln, ein Album in
+Nicht getestet sind bisher: echte OpenStreetMap-Kacheln, ein Album in
 voller Größe, echte Handys sowie Safari und Firefox. Details und geplante Erweiterungen stehen in
 [SPEC.md](SPEC.md).
 

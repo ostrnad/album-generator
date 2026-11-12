@@ -44,7 +44,7 @@ try:
 except ModuleNotFoundError:
     HEIF_OK = False
 
-VERSION = "1.4-poc"
+VERSION = "1.5"
 CONFIG_NAME = "album.toml"
 JPEG_EXT = {".jpg", ".jpeg"}
 HEIC_EXT = {".heic", ".heif"}
@@ -264,10 +264,10 @@ def cmd_init(args) -> None:
             z.append("panorama = true              # als schwenkbares, entzerrtes Panorama über die volle Breite zeigen")
             bw = pano_bildwinkel_exif(p)
             if bw:
-                z.append(f"# Bildwinkel laut EXIF (Brennweite {bw[1]:g} mm Kleinbild): ca. {bw[0]:g} Grad. Nur bei Bedarf überschreiben:")
+                z.append(f"panorama_bildwinkel = {bw[0]:g}   # senkrechter Bildwinkel in Grad, berechnet aus EXIF (Brennweite {bw[1]:g} mm Kleinbild)")
             else:
-                z.append(f"# Keine Brennweite in den EXIF-Daten; es gilt panorama_bildwinkel aus [einstellungen]. Bei Bedarf überschreiben:")
-            z.append(f"# panorama_bildwinkel = {bw[0] if bw else DEFAULTS['panorama_bildwinkel']:g}")
+                z.append("# Keine Brennweite in den EXIF-Daten; es gilt panorama_bildwinkel aus [einstellungen]. Bei Bedarf hier setzen:")
+                z.append(f"# panorama_bildwinkel = {DEFAULTS['panorama_bildwinkel']:g}")
     z.append("")
     z.append("# ── Stationen (optional) ──")
     z.append("# Zeitleiste zwischen Kopf und Karte, z. B. was an welchem Tag unternommen wurde. Ein Block pro Eintrag,")
@@ -994,33 +994,39 @@ var SVG='<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill
 
 function start(view){
   var img=view.querySelector("img"),W=img.naturalWidth,H=img.naturalHeight;if(!W||!H)return;
-  var cv=document.createElement("canvas"),gl=null,zwei=false;
+  var cv=document.createElement("canvas"),gl=null,zwei=false,U={},bereit=false;
   try{gl=cv.getContext("webgl2");zwei=!!gl;if(!gl)gl=cv.getContext("webgl")||cv.getContext("experimental-webgl")}catch(e){}
   if(!gl)return; /* ohne WebGL bleibt das flache Bild stehen */
-  function shader(typ,src){var s=gl.createShader(typ);gl.shaderSource(s,src);gl.compileShader(s);return s}
-  var pr=gl.createProgram();gl.attachShader(pr,shader(gl.VERTEX_SHADER,VS));gl.attachShader(pr,shader(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);
-  if(!gl.getProgramParameter(pr,gl.LINK_STATUS))return;
-  gl.useProgram(pr);
-  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
-  var a=gl.getAttribLocation(pr,"a");gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
-  /* Textur: bei Bedarf auf die Grenze der Grafikkarte verkleinern */
-  var max=gl.getParameter(gl.MAX_TEXTURE_SIZE),quelle=img;
-  if(W>max){var k=document.createElement("canvas");k.width=max;k.height=Math.max(1,Math.round(H*max/W));k.getContext("2d").drawImage(img,0,0,k.width,k.height);quelle=k}
-  gl.bindTexture(gl.TEXTURE_2D,gl.createTexture());
-  try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,quelle)}catch(e){return}
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-  if(zwei){gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR)}
-  else gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-  var U={};["res","yaw","pitch","tanv","theta","tanp","rund"].forEach(function(n){U[n]=gl.getUniformLocation(pr,n)});
+
+  /* Programm und Textur anlegen; läuft beim Start und nach jedem wiederhergestellten Grafikkontext */
+  function aufbauen(){
+    bereit=false;
+    function shader(typ,src){var s=gl.createShader(typ);gl.shaderSource(s,src);gl.compileShader(s);return s}
+    var pr=gl.createProgram();gl.attachShader(pr,shader(gl.VERTEX_SHADER,VS));gl.attachShader(pr,shader(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);
+    if(!gl.getProgramParameter(pr,gl.LINK_STATUS))return false;
+    gl.useProgram(pr);
+    gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    var a=gl.getAttribLocation(pr,"a");gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
+    /* Textur: bei Bedarf auf die Grenze der Grafikkarte verkleinern */
+    var max=gl.getParameter(gl.MAX_TEXTURE_SIZE),quelle=img;
+    if(W>max){var k=document.createElement("canvas");k.width=max;k.height=Math.max(1,Math.round(H*max/W));k.getContext("2d").drawImage(img,0,0,k.width,k.height);quelle=k}
+    gl.bindTexture(gl.TEXTURE_2D,gl.createTexture());
+    try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,quelle)}catch(e){return false}
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    if(zwei){gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR)}
+    else gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    ["res","yaw","pitch","tanv","theta","tanp","rund"].forEach(function(n){U[n]=gl.getUniformLocation(pr,n)});
+    bereit=true;return true;
+  }
+  if(!aufbauen())return;
 
   /* Geometrie: Zylinderprojektion, Breite = f*theta, Höhe = 2*f*tan(Bildwinkel/2) */
   var pv=(parseFloat(view.getAttribute("data-bildwinkel"))||54)*Math.PI/180,tanp=Math.tan(pv/2);
   var theta=W/H*2*tanp,rund=theta>=2*Math.PI-.02;if(theta>2*Math.PI)theta=2*Math.PI;
   var yaw=0,pitch=0,zoom=1,zoomMin=1,ZOOM_MAX=4,bw=1,bh=1;
 
-  view.appendChild(cv);cv.tabIndex=0;cv.setAttribute("role","img");
-  cv.setAttribute("aria-label",img.alt+" – Panorama, mit Ziehen oder den Pfeiltasten umsehen");
+  view.appendChild(cv);
   var zb=document.createElement("div");zb.className="pano-zoom";
   zb.innerHTML='<button type="button" aria-label="Verkleinern">'+SVG+'<path d="M5 12h14"/></svg></button><button type="button" aria-label="Vergrößern">'+SVG+'<path d="M5 12h14M12 5v14"/></svg></button>';
   var hinweis=document.createElement("div");hinweis.className="pano-hinweis";
@@ -1047,6 +1053,7 @@ function start(view){
     var w=Math.round(bw*dpr),h=Math.round(bh*dpr);
     if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}
     var tv=grenzen();
+    if(!bereit||gl.isContextLost())return;
     gl.viewport(0,0,w,h);
     gl.uniform2f(U.res,w,h);gl.uniform1f(U.yaw,yaw);gl.uniform1f(U.pitch,pitch);gl.uniform1f(U.tanv,tv);
     gl.uniform1f(U.theta,theta);gl.uniform1f(U.tanp,tanp);gl.uniform1f(U.rund,rund?1:0);
@@ -1054,33 +1061,50 @@ function start(view){
   }
   var wartet=false;function neu(){if(wartet)return;wartet=true;requestAnimationFrame(function(){wartet=false;zeichne()})}
 
-  var zieht=false,lx=0,ly=0;
-  cv.addEventListener("pointerdown",function(e){zieht=true;lx=e.clientX;ly=e.clientY;cv.classList.add("zieht");hinweis.classList.add("weg");try{cv.setPointerCapture(e.pointerId)}catch(x){}});
+  /* Zeiger: ein Finger/Maus schwenkt, zwei Finger zoomen */
+  var zeiger={},anzahl=0,abstand=0;
+  function zweiAbstand(){var k=Object.keys(zeiger);if(k.length<2)return 0;var a=zeiger[k[0]],b=zeiger[k[1]];return Math.hypot(a.x-b.x,a.y-b.y)}
+  cv.addEventListener("pointerdown",function(e){
+    zeiger[e.pointerId]={x:e.clientX,y:e.clientY};anzahl=Object.keys(zeiger).length;abstand=zweiAbstand();
+    cv.classList.add("zieht");hinweis.classList.add("weg");try{cv.setPointerCapture(e.pointerId)}catch(x){}
+  });
   cv.addEventListener("pointermove",function(e){
-    if(!zieht)return;var tv=tanp/zoom;
-    yaw-=(e.clientX-lx)*2*tv*(bw/bh)/bw;
-    if(e.pointerType!=="touch")pitch+=(e.clientY-ly)*2*tv/bh; /* am Handy bleibt senkrechtes Wischen das Scrollen der Seite */
-    lx=e.clientX;ly=e.clientY;neu();
+    var z=zeiger[e.pointerId];if(!z)return;var dx=e.clientX-z.x,dy=e.clientY-z.y;z.x=e.clientX;z.y=e.clientY;
+    if(anzahl>=2){var d=zweiAbstand();if(abstand>0&&d>0)zoom*=d/abstand;abstand=d;neu();return}
+    var tv=tanp/zoom;
+    yaw-=dx*2*tv*(bw/bh)/bw;
+    if(e.pointerType!=="touch")pitch+=dy*2*tv/bh; /* am Handy bleibt senkrechtes Wischen das Scrollen der Seite */
+    neu();
   });
-  function ende(){zieht=false;cv.classList.remove("zieht")}
+  function ende(e){delete zeiger[e.pointerId];anzahl=Object.keys(zeiger).length;abstand=zweiAbstand();if(!anzahl)cv.classList.remove("zieht")}
   cv.addEventListener("pointerup",ende);cv.addEventListener("pointercancel",ende);
-  cv.addEventListener("keydown",function(e){
-    var st=.12/zoom;
-    if(e.key==="ArrowLeft")yaw-=st;else if(e.key==="ArrowRight")yaw+=st;
-    else if(e.key==="+"||e.key==="=")zoom*=1.5;else if(e.key==="-")zoom/=1.5;else return;
-    e.preventDefault();hinweis.classList.add("weg");neu();
-  });
   cv.addEventListener("dblclick",function(){zoom=zoom>zoomMin*1.2?zoomMin:zoomMin*2;neu()});
   plus.addEventListener("click",function(){zoom*=1.5;neu()});
   minus.addEventListener("click",function(){zoom/=1.5;neu()});
-  cv.addEventListener("webglcontextlost",function(e){e.preventDefault()});
+
+  /* Grafikkontext: Verlust abfangen und neu aufbauen (am Handy bei Speicherdruck üblich) */
+  cv.addEventListener("webglcontextlost",function(e){e.preventDefault();bereit=false});
+  cv.addEventListener("webglcontextrestored",function(){if(aufbauen())zeichne()});
+  /* Browser erlauben nur wenige WebGL-Flächen gleichzeitig: außerhalb des Sichtbereichs freigeben */
+  var ext=gl.getExtension("WEBGL_lose_context");
+  if(ext&&window.IntersectionObserver){
+    new IntersectionObserver(function(es){
+      var sichtbar=es[es.length-1].isIntersecting;
+      try{if(sichtbar&&gl.isContextLost())ext.restoreContext();else if(!sichtbar&&!gl.isContextLost())ext.loseContext()}catch(e){}
+    },{rootMargin:"600px 0px"}).observe(view);
+  }
   if(window.ResizeObserver)new ResizeObserver(neu).observe(view);else window.addEventListener("resize",neu);
   zeichne();
 }
 [].forEach.call(document.querySelectorAll(".pano-view"),function(v){
-  var img=v.querySelector("img");
-  function los(){try{start(v)}catch(e){}}
-  if(img.complete&&img.naturalWidth)los();else img.addEventListener("load",los);
+  var img=v.querySelector("img"),gestartet=false;
+  function los(){if(gestartet)return;gestartet=true;try{start(v)}catch(e){}}
+  function wennGeladen(){if(img.complete&&img.naturalWidth)los();else img.addEventListener("load",los)}
+  /* erst starten, wenn das Panorama in die Nähe des Sichtbereichs kommt */
+  if(window.IntersectionObserver){
+    var io=new IntersectionObserver(function(es){if(es.some(function(e){return e.isIntersecting})){io.disconnect();wennGeladen()}},{rootMargin:"600px 0px"});
+    io.observe(v);
+  }else wennGeladen();
 });
 })();
 """

@@ -1,7 +1,7 @@
 # SPEC – fotoalbum.py
 
 Verbindliche Beschreibung dessen, was das Tool tut und tun soll. Abschnitte 1–7 beschreiben den umgesetzten
-Stand (Version `1.4-poc`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das Geplante mit offenen Entscheidungen.
+Stand (Version `1.5`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das Geplante mit offenen Entscheidungen.
 
 ## 1. Ziel und Grundsätze
 
@@ -127,22 +127,32 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
 - Dunkelmodus: CSS-Filter auf dem Kartenbild. Quellenangabe unten rechts auf der Karte.
 - Kachelabruf mit eigenem User-Agent, 2 parallele Verbindungen, Zwischenspeicher `~/.cache/fotoalbum/kacheln`.
 
-### 6.7 Panorama (PoC)
+### 6.7 Panorama
 
+- Unterstützt wird genau ein Fall: Gerät hochkant, seitwärts geschwenkt. Quer gehaltene und senkrecht
+  geschwenkte Panoramen sind bewusst nicht vorgesehen (Entscheidung des Nutzers).
 - Annahme: zylindrische Projektion. Breite = f·θ, Höhe = 2·f·tan(v/2) ⇒ Schwenkwinkel
   θ = (Breite/Höhe)·2·tan(v/2), begrenzt auf 360°.
 - Senkrechter Bildwinkel v, Reihenfolge: `panorama_bildwinkel` am Bild → EXIF → `[einstellungen]`.
+  `init` schreibt den aus EXIF berechneten Wert als aktive Zeile in den `[[bild]]`-Block; ohne Brennweite
+  im EXIF steht dort nur ein auskommentierter Hinweis.
   EXIF-Formel: v = 2·atan(`PANO_BESCHNITT` · 17,31 / f35) mit f35 = Kleinbild-Brennweite (EXIF-Tag 41989),
   17,31 mm = halbe lange Seite eines 4:3-Bildes bei Kleinbild-Diagonale, `PANO_BESCHNITT` = 0,77.
 - Darstellung: WebGL-Fragment-Shader rechnet pro Pixel den Sichtstrahl einer geradlinigen Kamera
   (Gieren, Nicken, Zoom) auf Zylinderkoordinaten um. WebGL2 mit Mipmaps, sonst WebGL1.
 - Widget spannt alle Rasterspalten (`grid-column: 1 / -1`); Seitenverhältnis 2,2 am Desktop, 1,4 am Handy.
-- Bedienung: Ziehen schwenkt; Plus/Minus, Doppelklick und `+`/`-` zoomen (bis 4×); Pfeiltasten schwenken.
+- Bedienung: Ziehen schwenkt; Plus/Minus, Doppelklick und Zwei-Finger-Geste zoomen (bis 4×).
   Auf Touch-Geräten schwenkt nur waagerechtes Wischen (`touch-action: pan-y`), senkrechtes scrollt die Seite.
 - Der Ausschnitt bleibt immer innerhalb des Bildes (Grenzen für Gieren, Nicken und Mindestzoom).
-- Ist das Bild breiter als `MAX_TEXTURE_SIZE`, wird es im Browser vorher verkleinert.
+- Auflösung: Breite ≤ `panorama_breite` (8192 px, reicht laut Nutzer). Ist das Bild breiter als
+  `MAX_TEXTURE_SIZE` des Geräts, wird es im Browser vorher verkleinert.
+- Ressourcen: Das Widget startet erst, wenn es in die Nähe des Sichtbereichs kommt (600 px Vorlauf), gibt
+  seinen Grafikkontext außerhalb davon frei und baut ihn beim Zurückscrollen neu auf. Ein vom Browser
+  entzogener Kontext wird ebenso neu aufgebaut. Schwenk und Zoom bleiben dabei erhalten.
 - Ohne JavaScript oder WebGL bleibt das Panorama als flacher Streifen sichtbar.
-- Panoramen sind nicht Teil der Großansicht und haben kein „Speichern".
+- Panoramen sind nicht Teil der Großansicht, nicht bildschirmfüllend zu öffnen und haben kein „Speichern"
+  (Entscheidung des Nutzers, „erstmal").
+- Panoramen sind immer eingebettet, auch im späteren `--self-contained`-Modus.
 
 ## 7. Entscheidungen mit Begründung
 
@@ -161,10 +171,11 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
 Geprüft wurde bisher nur mit künstlich erzeugten Testbildern in Chrome (Desktop- und Handy-Viewport,
 Software-Rendering). **Nicht** geprüft:
 
-- echte iPhone-HEICs und echte iPhone-Panoramen
-- ob iPhone-Panoramen die Kleinbild-Brennweite im EXIF tragen; ob `PANO_BESCHNITT` = 0,77 stimmt (der Wert
-  ist so gewählt, dass 26 mm die angenommenen 54° ergibt, nicht gemessen)
-- quer gehaltene Panoramen (anderer senkrechter Winkel) und hochkant geschwenkte Panoramen
+- Echte iPhone-Panoramen hat der Nutzer selbst ausprobiert („sieht super aus und funktioniert"); welche
+  Geräte und Browser, ist nicht dokumentiert. `PANO_BESCHNITT` = 0,77 bleibt eine Schätzung (so gewählt,
+  dass 26 mm 54° ergibt), wurde aber nicht beanstandet.
+- Zwei-Finger-Zoom im Panorama: nur implementiert, nicht auf einem Touch-Gerät geprüft
+- Freigabe und Neuaufbau des Grafikkontexts: nur in Chrome mit Software-Rendering geprüft
 - Abruf echter OpenStreetMap-Kacheln (nur gegen einen lokalen Ersatzserver getestet)
 - ein Album in voller Größe (36 echte Fotos), Ladezeit und Speicherbedarf auf Handys
 - Safari, Firefox, echte Mobilgeräte; lokales Öffnen auf dem iPhone (dort läuft JavaScript in der
@@ -189,8 +200,9 @@ Bereits geklärt:
 1. HEIC im verlinkten Modus. Vorschlag: JPEG-Kopie in voller Auflösung in einem Unterordner für die Anzeige,
    „Speichern" liefert das Original. Alternative: HEIC direkt verlinken, Nicht-Safari-Browser sehen nur die
    1280er Vorschau.
-2. Panoramen in beiden Modi eingebettet lassen? Gründe: lokal geöffnet verweigert WebGL nachgeladene Bilder
-   als Textur (Annahme, nicht nachgetestet); Originale überschreiten ohnehin die Texturgrenzen.
+2. Panoramen: Für `--self-contained` entschieden (eingebettet). Für den verlinkten Modus nicht ausdrücklich
+   beantwortet; Empfehlung bleibt, sie auch dort einzubetten: lokal geöffnet verweigert WebGL nachgeladene
+   Bilder als Textur (Annahme, nicht nachgetestet), und Originale überschreiten ohnehin die Texturgrenzen.
 3. Original am Handy erst bei Zoom oder Speichern laden (die 1280er Vorschau ist dort etwa bildschirmscharf)
    oder immer sofort?
 4. WebGL-Verkleinerung weglassen (Empfehlung: ja)?
@@ -203,10 +215,10 @@ Ausgabe per `-o` woanders, bricht der verlinkte Modus mit Fehlermeldung ab.
 
 Wegpunkte entlang eines GPX-Tracks verbinden statt per Luftlinie. Noch nicht spezifiziert.
 
-### 9.3 Panorama über den PoC hinaus (gewünscht)
+### 9.3 Panorama (zurückgestellt)
 
-Offen: Großansicht und „Speichern" für Panoramen, Verifikation mit echten iPhone-Panoramen, Kalibrierung
-von `PANO_BESCHNITT`, Umgang mit quer gehaltenen und senkrechten Panoramen.
+Vom Nutzer vorerst abgelehnt, bei Bedarf wieder aufgreifen: bildschirmfüllende Ansicht und „Speichern".
+Ausdrücklich nicht gewünscht: quer gehaltene und senkrecht geschwenkte Panoramen, mehr als 8192 px Breite.
 
 ### 9.4 Mögliche weitere Punkte (nicht beauftragt)
 
