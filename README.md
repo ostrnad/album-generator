@@ -5,7 +5,7 @@ CSS und JavaScript sind eingebettet; neben der HTML-Datei gibt es keine weiteren
 
 Ausgelegt auf etwa 30–40 Bilder pro Album, für Desktop und Handy, mit hellem und dunklem Design.
 
-Stand: Version `1.3.1-poc`. Das Panorama-Widget ist ein Proof of Concept, siehe [SPEC.md](SPEC.md).
+Stand: Version `1.4-poc`. Das Panorama-Widget ist ein Proof of Concept, siehe [SPEC.md](SPEC.md).
 
 ## Voraussetzungen
 
@@ -25,6 +25,7 @@ python fotoalbum.py build <Bilderordner>/album.toml
 - Titel (vorbelegt mit dem Ordnernamen), Untertitel, Datum oder Zeitraum (vorbelegt aus den Aufnahmedaten)
 - ein `[[bild]]`-Block pro Bild, sortiert nach Aufnahmezeit
 - `[[wegpunkt]]`-Blöcke aus den GPS-Daten der Fotos, falls vorhanden
+- ein auskommentiertes Beispiel für `[[station]]`
 - `panorama = true` bei sehr breiten Bildern
 
 Eine vorhandene `album.toml` wird nur mit `--force` überschrieben.
@@ -65,6 +66,15 @@ datei = "IMG_0042.HEIC"
 panorama = true               # schwenkbares, entzerrtes Panorama über die volle Breite
 # panorama_bildwinkel = 54.3  # optional, überschreibt EXIF und [einstellungen]
 
+[[station]]                   # optional: Zeitleiste zwischen Kopf und Karte
+name = "Ferienwohnung"        # frei, z. B. "Tag 1" oder ein Datum
+text = "Dorfstraße 1 in Musterdorf"
+symbol = "haus"               # optional: haus oder punkt (Standard)
+
+[[station]]
+name = "Tag 1"
+text = "Wanderung zum See"
+
 [karte]
 anzeigen = true
 art = "route"                 # "route" = Wegpunkte verbunden, "punkte" = einzelne Wegpunkte
@@ -83,6 +93,8 @@ lon = 8.56780                 # Pflicht
 - Der Untertitel darf mehrzeilig sein: `untertitel = "Erste Zeile\nZweite Zeile"` oder als TOML-Block in
   drei Anführungszeichen. Zeilenumbrüche werden übernommen.
 - Datumsangaben gehen als TOML-Datum (`2026-07-12`) oder als Text (`"12.07.2026"`).
+- Stationen und Wegpunkte sind getrennte Dinge: Stationen erzählen den Ablauf als Text (ohne Koordinaten),
+  Wegpunkte markieren ausgewählte Orte auf der Karte. Bei einer Station muss `name` oder `text` gefüllt sein.
 - Die Karte erscheint, sobald es mindestens einen `[[wegpunkt]]` gibt und `anzeigen = true` ist.
 
 ## Was die erzeugte Seite kann
@@ -90,6 +102,9 @@ lon = 8.56780                 # Pflicht
 - **Raster** im Passepartout-Design: 3 Spalten am Desktop, 2 am Handy, Bildunterschriften unter dem Bild
 - **Großansicht** mit Blättern (Pfeile, Tastatur, Wischen), Zähler, Unterschrift, Datum und „Speichern"
 - **Hell/Dunkel** nach Systemeinstellung, mit Umschalter; die Wahl wird im Browser gemerkt
+- **Stationen** als Zeitleiste mit Symbol pro Eintrag
+- **Einklappbar:** Stationen und Karte lassen sich getrennt ein- und ausklappen; am Desktop sind sie
+  standardmäßig offen, am Handy zu (funktioniert ohne JavaScript)
 - **Karte** als eingebettetes Bild mit nummerierten Wegpunkten, wahlweise als Route verbunden
 - **Panorama**: zylindrische Panoramen werden per WebGL entzerrt und sind schwenk- und zoombar
 - **Ohne JavaScript** bleiben Raster, Unterschriften, Karte und Hell/Dunkel nach System erhalten

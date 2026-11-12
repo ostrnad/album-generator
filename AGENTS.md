@@ -19,10 +19,10 @@ Reihenfolge in der Datei (Zeilennummern verschieben sich, per `grep -n` suchen):
 
 | Abschnitt | Inhalt |
 |---|---|
-| Kopf | Imports, `VERSION`, `DEFAULTS`, `KARTE_DEFAULTS`, Konstanten |
+| Kopf | Imports, `VERSION`, `DEFAULTS`, `KARTE_DEFAULTS`, `SYMBOLE`, Konstanten |
 | Hilfsfunktionen | `exif_lesen`, `ist_panorama`, `pano_bildwinkel_exif`, `entfernung_km`, `als_datum`, `datum_text`, `zeitraum_text` |
 | Schritt 1 | `cmd_init` – schreibt die `album.toml` zeilenweise |
-| Schritt 2 | `jpeg_bytes`, `bild_verarbeiten`, `kachel_laden`, `karte_rendern`, `karte_html`, `cmd_build` |
+| Schritt 2 | `jpeg_bytes`, `bild_verarbeiten`, `kachel_laden`, `karte_rendern`, `karte_html`, `klappbar`, `stationen_html`, `cmd_build` |
 | Vorlage | `DARK_VARS`, `dark_css`, `CSS`, Icons, `TEMPLATE`, `JS`, `JS_PANO` |
 | Schrift | `FONT_400`, `FONT_600` (Base64, nicht lesen) |
 | Einstieg | `main` mit `argparse` |
@@ -46,8 +46,8 @@ Wie die Vorlage zusammengesetzt wird:
 4. **Hell und Dunkel gemeinsam pflegen.** Farben nur über CSS-Variablen; dunkle Werte in `DARK_VARS`,
    zusätzliche dunkle Regeln in `dark_css()`.
 5. **Handy mitdenken.** Der Umbruch liegt bei 700 px; Bedienelemente mindestens 44 px groß.
-6. **Zugänglichkeit halten.** Echte `<button>`-Elemente, `aria-label` an Icon-Knöpfen, Tastaturbedienung,
-   Fokus-Rückgabe.
+6. **Screenreader und Tastaturbedienung sind keine Anforderung** (SPEC G5). Dafür keinen Aufwand treiben
+   und keine Lösung deswegen verwerfen; Vorhandenes muss nicht ausgebaut werden.
 7. **Abhängigkeiten:** nur Pillow und pillow-heif plus Standardbibliothek. Neue Abhängigkeiten vorher mit
    dem Nutzer klären.
 8. **Konfiguration:** Neue Schlüssel bekommen einen Default, eine Validierung in `cmd_build`, eine
@@ -71,6 +71,7 @@ Danach die erzeugte Seite im Browser ansehen, mindestens:
 - Desktop- und Handybreite, hell und dunkel
 - Großansicht: öffnen, blättern, speichern, schließen
 - mit abgeschaltetem JavaScript
+- Stationen und Karte ein- und ausklappen; Startzustand an Desktop (offen) und Handy (zu) prüfen
 - bei Kartenänderungen: `art = "route"` und `art = "punkte"`
 - bei Panoramaänderungen: gerade Linien bleiben gerade (siehe unten)
 

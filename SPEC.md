@@ -1,7 +1,7 @@
 # SPEC – fotoalbum.py
 
 Verbindliche Beschreibung dessen, was das Tool tut und tun soll. Abschnitte 1–7 beschreiben den umgesetzten
-Stand (Version `1.3.1-poc`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das Geplante mit offenen Entscheidungen.
+Stand (Version `1.4-poc`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das Geplante mit offenen Entscheidungen.
 
 ## 1. Ziel und Grundsätze
 
@@ -14,6 +14,8 @@ Stand (Version `1.3.1-poc`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das 
 - **G3 – Keine Foto-Metadaten in der Ausgabe:** EXIF (inkl. GPS) wird nicht übernommen. Ausnahme sind die
   bewusst konfigurierten Wegpunkte.
 - **G4 – Konfiguration von Hand editierbar:** TOML mit deutschen Schlüsseln und erklärenden Kommentaren.
+- **G5 – Keine Anforderung an Screenreader und Tastaturbedienung:** Für die erzeugten Seiten spielen beide
+  laut Nutzer keine Rolle. Vorhandene Tastaturbedienung darf bleiben, begründet aber keine Designentscheidung.
 - Hauptverbreitungsweg ist die Weitergabe der Datei (Ablage in der Cloud); daneben eigener Server.
 
 ## 2. Kommandozeile
@@ -42,6 +44,7 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
 ## 4. `build` – Validierung
 
 - `titel` Pflicht. `datum` und `datum_von`/`datum_bis` schließen sich aus; ein Zeitraum braucht beide Enden.
+- Stationen: `name` oder `text` Pflicht; `symbol` muss in `SYMBOLE` stehen.
 - Unbekannte Schlüssel in `[einstellungen]` und `[karte]` sind Fehler; Typen müssen zu den Defaults passen.
 - Es muss gelten: `vorschau_klein < vorschau_gross <= vollbild`.
 - Jede `datei` muss existieren (relativ zur `album.toml`). HEIC ohne `pillow-heif` ist ein Fehler.
@@ -91,7 +94,27 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
 - „Speichern" lädt das große JPEG als `<Originalname>.jpg`.
 - Bildgröße wird per JavaScript in die Bühne eingepasst, nie über die native Größe hinaus.
 
-### 6.4 Karte
+### 6.4 Stationen (Zeitleiste)
+
+- Optionaler Abschnitt zwischen Kopf und Karte, gespeist aus `[[station]]` in Dateireihenfolge.
+- Bedeutung: Stationen erzählen den Ablauf (z. B. Tagesinhalte, komplette Wanderungen) als reinen Text.
+  Sie haben keine Koordinaten und sind bewusst **nicht** mit den Wegpunkten verknüpft; Wegpunkte sind eine
+  lose Sammlung besuchter Orte auf der Karte.
+- Felder: `name` (frei, z. B. „Tag 1"), `text`, `symbol`. `name` oder `text` muss gefüllt sein.
+- Darstellung: senkrechte Linie, pro Eintrag eine Marke, `name` klein darüber, `text` darunter; max. 720 px.
+- **Symbole:** Tabelle `SYMBOLE` im Code (Name → SVG-Inhalt 24×24, `None` = Aufzählungspunkt). Vorhanden:
+  `punkt` (Standard) und `haus`. Kein Eintrag bekommt automatisch ein Symbol. Ein unbekannter Name ist ein
+  Fehler, der die verfügbaren Namen nennt. Erweitern = eine Zeile in `SYMBOLE`.
+
+### 6.5 Einklappbare Abschnitte
+
+- Stationen und Karte (samt Wegpunkt-Liste) sind getrennt einklappbar, jeweils über eine Pille mit Pfeil.
+- Standard: am Desktop offen, am Handy (≤ 700 px) zu.
+- Umsetzung ohne JavaScript (`klappbar()`): unsichtbare Checkbox plus `<label>`; die Bedeutung von
+  „angehakt" ist je Media-Query umgekehrt (Desktop: angehakt = zu, Handy: angehakt = offen). Folge: Wer die
+  Fensterbreite über die 700-px-Grenze zieht, sieht den Zustand umspringen. Der Zustand wird nicht gemerkt.
+
+### 6.6 Karte
 
 - Statisches Kartenbild 1500 × 1000 px (JPEG) aus Web-Mercator-Kacheln, beim Bauen geladen und eingebettet.
 - Zoom automatisch: größte Stufe ≤ 15, bei der alle Wegpunkte in 76 % der Breite und 70 % der Höhe passen;
@@ -104,7 +127,7 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
 - Dunkelmodus: CSS-Filter auf dem Kartenbild. Quellenangabe unten rechts auf der Karte.
 - Kachelabruf mit eigenem User-Agent, 2 parallele Verbindungen, Zwischenspeicher `~/.cache/fotoalbum/kacheln`.
 
-### 6.5 Panorama (PoC)
+### 6.7 Panorama (PoC)
 
 - Annahme: zylindrische Projektion. Breite = f·θ, Höhe = 2·f·tan(v/2) ⇒ Schwenkwinkel
   θ = (Breite/Höhe)·2·tan(v/2), begrenzt auf 360°.
@@ -127,6 +150,8 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
 - **HEIC → JPEG:** außer Safari zeigt kein verbreiteter Browser HEIC an.
 - **Statische Karte statt Kartenbibliothek:** wahrt G1; Preis: nicht zoom- oder verschiebbar.
 - **Dunkle Passepartouts im Dunkelmodus:** 36 weiße Flächen würden nachts blenden.
+- **Einklappen per Checkbox statt `<details>` oder JavaScript:** nur so ist der Startzustand je
+  Bildschirmgröße ohne JavaScript verschieden; der Nachteil für Tastatur und Screenreader ist laut G5 egal.
 - **Keine WebGL-Verkleinerung der Fotos:** Browser skalieren bereits gut; WebGL brächte Probleme mit
   Texturgrenzen, Farbprofilen, Pinch-Zoom und lokal geöffneten Dateien. (Empfehlung, vom Nutzer noch nicht
   bestätigt.)

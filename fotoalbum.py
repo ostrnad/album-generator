@@ -44,7 +44,7 @@ try:
 except ModuleNotFoundError:
     HEIF_OK = False
 
-VERSION = "1.3.1-poc"
+VERSION = "1.4-poc"
 CONFIG_NAME = "album.toml"
 JPEG_EXT = {".jpg", ".jpeg"}
 HEIC_EXT = {".heic", ".heif"}
@@ -68,6 +68,12 @@ KARTE_DEFAULTS = {
     "zoom": 0,                 # 0 = automatisch, sonst feste Zoomstufe 2–18
     "kacheln": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     "quelle": "© OpenStreetMap-Mitwirkende",
+}
+# Symbole für Stationen: Name -> Inhalt eines 24×24-SVG (Strichzeichnung). None = normaler Aufzählungspunkt.
+# Neues Symbol = neue Zeile hier; der Name ist dann als  symbol = "…"  in [[station]] erlaubt.
+SYMBOLE = {
+    "punkt": None,
+    "haus": '<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/>',
 }
 KARTE_W, KARTE_H = 1500, 1000  # Größe des eingebetteten Kartenbildes in Pixeln
 WEGPUNKT_RADIUS_KM = 1.0       # init: aufeinanderfolgende Fotos in diesem Umkreis werden ein Wegpunkt
@@ -262,6 +268,20 @@ def cmd_init(args) -> None:
             else:
                 z.append(f"# Keine Brennweite in den EXIF-Daten; es gilt panorama_bildwinkel aus [einstellungen]. Bei Bedarf überschreiben:")
             z.append(f"# panorama_bildwinkel = {bw[0] if bw else DEFAULTS['panorama_bildwinkel']:g}")
+    z.append("")
+    z.append("# ── Stationen (optional) ──")
+    z.append("# Zeitleiste zwischen Kopf und Karte, z. B. was an welchem Tag unternommen wurde. Ein Block pro Eintrag,")
+    z.append("# Reihenfolge wie hier. 'name' und 'text' sind frei; mindestens eines von beiden muss gefüllt sein.")
+    z.append(f"# 'symbol' ist optional: {', '.join(sorted(SYMBOLE))} (Standard: punkt). Zum Aktivieren die # entfernen.")
+    z.append("")
+    z.append("# [[station]]")
+    z.append('# name = "Ferienwohnung"')
+    z.append('# text = "Dorfstraße 1 in Musterdorf"')
+    z.append('# symbol = "haus"')
+    z.append("")
+    z.append("# [[station]]")
+    z.append('# name = "Tag 1"')
+    z.append('# text = "Wanderung zum See"')
     z.append("")
     z.append("# ── Karte (optional) ──")
     z.append("# Die Karte erscheint, sobald es mindestens einen [[wegpunkt]] gibt und 'anzeigen = true' ist.")
@@ -474,6 +494,42 @@ def karte_html(cfg: dict) -> str:
     return out + "</section>"
 
 
+def klappbar(kennung: str, titel: str, inhalt: str) -> str:
+    """Einklappbarer Abschnitt ohne JavaScript: am Desktop standardmäßig offen, am Handy standardmäßig zu.
+
+    Trick: Eine unsichtbare Checkbox, deren Bedeutung je Bildschirmbreite umgekehrt ist (siehe CSS .klapp).
+    """
+    pfeil = ('<svg aria-hidden="true" class="klapp-pfeil" width="16" height="16" viewBox="0 0 24 24" fill="none" '
+             'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>')
+    return (f'<section class="klapp"><input type="checkbox" class="klapp-box" id="klapp-{kennung}">'
+            f'<label class="klapp-kopf" for="klapp-{kennung}"><span>{html.escape(titel)}</span>{pfeil}</label>'
+            f'<div class="klapp-inhalt">{inhalt}</div></section>')
+
+
+def stationen_html(cfg: dict) -> str:
+    """Liest [[station]] und liefert die Zeitleiste (leer, wenn es keine Stationen gibt)."""
+    esc = html.escape
+    zeilen = []
+    for i, st in enumerate(cfg.get("station") or [], 1):
+        name, text = str(st.get("name", "")).strip(), str(st.get("text", "")).strip()
+        if not name and not text:
+            fehler(f"Station {i}: 'name' oder 'text' muss angegeben sein.")
+        symbol = str(st.get("symbol", "punkt")).strip().lower()
+        if symbol not in SYMBOLE:
+            fehler(f"Station {i}: unbekanntes Symbol {symbol!r}. Verfügbar: {', '.join(sorted(SYMBOLE))}")
+        if SYMBOLE[symbol] is None:
+            marke = '<span class="zl-punkt"></span>'
+        else:
+            marke = ('<span class="zl-symbol"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" '
+                     f'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">{SYMBOLE[symbol]}</svg></span>')
+        n = f'<span class="zl-name">{esc(name)}</span>' if name else ""
+        t = f'<span class="zl-text">{esc(text)}</span>' if text else ""
+        zeilen.append(f'<li>{marke}<div class="zl-eintrag">{n}{t}</div></li>')
+    if not zeilen:
+        return ""
+    return klappbar("stationen", "Stationen", f'<ol class="zeitleiste">{"".join(zeilen)}</ol>')
+
+
 def cmd_build(args) -> None:
     cfg_pfad = Path(args.konfiguration).expanduser()
     if cfg_pfad.is_dir():
@@ -545,7 +601,10 @@ def cmd_build(args) -> None:
         if isinstance(bw, bool) or not isinstance(bw, (int, float)) or not 10 <= bw <= 150:
             fehler(f"Bild {i} ({name}): panorama_bildwinkel muss zwischen 10 und 150 Grad liegen.")
 
+    stationen = stationen_html(cfg)
     karte = karte_html(cfg)
+    if karte:
+        karte = klappbar("karte", "Karte", karte)
 
     ausgabe = Path(args.ausgabe).expanduser() if args.ausgabe else basis / str(cfg.get("ausgabe") or "album.html")
 
@@ -613,6 +672,7 @@ def cmd_build(args) -> None:
              .replace("%%JS%%", JS + (JS_PANO if any(e["panorama"] for e in eintraege) else ""))
              .replace("%%TITEL%%", esc(titel))
              .replace("%%KOPF%%", kopf)
+             .replace("%%STATIONEN%%", stationen)
              .replace("%%KARTE%%", karte)
              .replace("%%ANZAHL%%", anzahl))
     vor, nach = seite.split("%%FOTOS%%")
@@ -636,7 +696,7 @@ def cmd_build(args) -> None:
 
 DARK_VARS = ("--bg:#161C18;--fg:#E6ECE7;--muted:#A9B5AC;--mat:#242C27;--mat-shadow:0 0 0 1px #36413A;"
              "--lb-bg:#0F1411;--lb-muted:#A9B5AC;--btn-bg:#E6ECE7;--btn-fg:#161C18;--nav-bg:#242C27;"
-             "--nav-shadow:0 0 0 1px #36413A;color-scheme:dark")
+             "--nav-shadow:0 0 0 1px #36413A;--linie:rgba(169,181,172,.45);color-scheme:dark")
 
 
 def dark_css(sel: str) -> str:
@@ -648,7 +708,7 @@ CSS = r"""
 @font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:400;font-display:swap;src:url(data:font/woff2;base64,%%FONT400%%) format("woff2")}
 @font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:600;font-display:swap;src:url(data:font/woff2;base64,%%FONT600%%) format("woff2")}
 :root{--bg:#DCE3DD;--fg:#1F2A24;--muted:#4A584F;--mat:#FFFFFF;--mat-shadow:0 1px 2px rgba(31,42,36,.12),0 8px 24px rgba(31,42,36,.08);
---lb-bg:#CFD8D1;--lb-muted:#3F4D44;--btn-bg:#1F2A24;--btn-fg:#FFFFFF;--nav-bg:#FFFFFF;--nav-shadow:0 1px 2px rgba(31,42,36,.16);color-scheme:light}
+--lb-bg:#CFD8D1;--lb-muted:#3F4D44;--btn-bg:#1F2A24;--btn-fg:#FFFFFF;--nav-bg:#FFFFFF;--nav-shadow:0 1px 2px rgba(31,42,36,.16);--linie:rgba(74,88,79,.45);color-scheme:light}
 .i-sun{display:none}
 @media (prefers-color-scheme:dark){%%DARK_AUTO%%}
 %%DARK_SET%%
@@ -688,6 +748,21 @@ h1{margin:0;font-size:60px;line-height:1.05;font-weight:600;letter-spacing:-.02e
 .pano-hinweis.weg{opacity:0}
 figcaption{font-size:15px;color:var(--muted);text-align:center;text-wrap:balance;overflow-wrap:anywhere}
 footer{font-size:15px;color:var(--muted);text-align:center}
+.klapp{display:flex;flex-direction:column;align-items:center;gap:28px}
+.klapp-box{position:absolute;opacity:0;pointer-events:none}
+.klapp-kopf{height:44px;padding:0 14px 0 18px;display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--muted);border:1px solid var(--muted);border-radius:999px;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.klapp-inhalt{width:100%}
+.klapp-pfeil{transition:transform .2s}
+@media (min-width:701px){.klapp-box:checked~.klapp-inhalt{display:none}.klapp-box:not(:checked)~.klapp-kopf .klapp-pfeil{transform:rotate(180deg)}}
+@media (max-width:700px){.klapp-box:not(:checked)~.klapp-inhalt{display:none}.klapp-box:checked~.klapp-kopf .klapp-pfeil{transform:rotate(180deg)}}
+.zeitleiste{list-style:none;margin:0 auto;padding:0 0 0 14px;max-width:720px}
+.zeitleiste li{position:relative;border-left:2px solid var(--linie);padding:0 0 20px 30px}
+.zeitleiste li:last-child{border-left-color:transparent;padding-bottom:0}
+.zl-punkt{position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:999px;background:var(--fg);box-shadow:0 0 0 4px var(--bg)}
+.zl-symbol{position:absolute;left:-15px;top:-5px;width:28px;height:28px;border-radius:999px;background:var(--btn-bg);color:var(--btn-fg);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 4px var(--bg)}
+.zl-eintrag{display:flex;flex-direction:column;gap:2px}
+.zl-name{font-size:13px;font-weight:600;color:var(--muted)}
+.zl-text{font-size:16px;line-height:1.45;overflow-wrap:anywhere}
 .karte{background:var(--mat);box-shadow:var(--mat-shadow);padding:28px}
 .karte-bild{position:relative;aspect-ratio:3/2;overflow:hidden;background:rgba(127,127,127,.18)}
 .karte-bild>img{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -717,6 +792,10 @@ h1{font-size:36px;line-height:1.08}
 .foto{gap:8px}
 figcaption,footer{font-size:13px}
 .karte{padding:12px}
+.klapp{gap:20px}
+.klapp-kopf{font-size:14px}
+.zeitleiste li{padding:0 0 16px 24px}
+.zl-text{font-size:15px}
 .pano-mat{padding:12px}
 .pano-view.aktiv{aspect-ratio:1.4}
 .pano-hinweis{font-size:13px;padding:0 12px}
@@ -773,6 +852,7 @@ TEMPLATE = f"""<!DOCTYPE html>
 {THEMA_BTN}
 <div class="inhalt">
 <header>%%KOPF%%</header>
+%%STATIONEN%%
 %%KARTE%%
 <main class="raster">
 %%FOTOS%%
