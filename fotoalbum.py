@@ -44,7 +44,7 @@ try:
 except ModuleNotFoundError:
     HEIF_OK = False
 
-VERSION = "1.3-poc"
+VERSION = "1.3.1-poc"
 CONFIG_NAME = "album.toml"
 JPEG_EXT = {".jpg", ".jpeg"}
 HEIC_EXT = {".heic", ".heif"}
@@ -216,7 +216,7 @@ def cmd_init(args) -> None:
     z.append("# Fotoalbum – Konfiguration. Bearbeiten, dann:  python fotoalbum.py build " + CONFIG_NAME)
     z.append("")
     z.append(f"titel = {toml_str(ordner.resolve().name)}")
-    z.append('untertitel = ""              # optional, leer lassen = keine Unterzeile')
+    z.append('untertitel = ""              # optional, leer lassen = keine Unterzeile; Zeilenumbruch mit \\n')
     z.append("")
     z.append("# Datum (optional): entweder ein einzelnes Datum ODER ein Zeitraum. Nicht Gewünschtes löschen")
     z.append("# oder mit # auskommentieren. Format: 2026-07-12")
@@ -661,7 +661,7 @@ button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:tra
 .inhalt{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:64px}
 header{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
 h1{margin:0;font-size:60px;line-height:1.05;font-weight:600;letter-spacing:-.02em;text-wrap:balance;overflow-wrap:anywhere}
-.sub{margin:0;font-size:20px;color:var(--muted);text-wrap:balance}
+.sub{margin:0;font-size:20px;color:var(--muted);text-wrap:balance;white-space:pre-line}
 .datum{margin:6px 0 0}
 .datum span{display:inline-block;font-size:15px;color:var(--muted);border:1px solid var(--muted);border-radius:999px;padding:6px 16px}
 .rund{width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--muted);border-radius:999px;padding:0}

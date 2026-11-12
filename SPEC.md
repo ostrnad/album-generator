@@ -1,7 +1,7 @@
 # SPEC – fotoalbum.py
 
 Verbindliche Beschreibung dessen, was das Tool tut und tun soll. Abschnitte 1–7 beschreiben den umgesetzten
-Stand (Version `1.3-poc`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das Geplante mit offenen Entscheidungen.
+Stand (Version `1.3.1-poc`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das Geplante mit offenen Entscheidungen.
 
 ## 1. Ziel und Grundsätze
 
@@ -68,7 +68,8 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
   Großansicht-Grund `#CFD8D1`.
 - Farben dunkel: Grund `#161C18`, Text `#E6ECE7`, gedämpft `#A9B5AC`, Passepartout `#242C27` mit Kontur
   `#36413A`, Großansicht-Grund `#0F1411`.
-- Kopf zentriert: Titel, optionale Unterzeile, optionales Datum als Pille. Fuß: „N Fotos".
+- Kopf zentriert: Titel, optionale Unterzeile (Zeilenumbrüche aus der Konfiguration bleiben erhalten),
+  optionales Datum als Pille. Fuß: „N Fotos".
 - Raster: `repeat(auto-fill, minmax(min(300px, 44%), 1fr))` → 3 Spalten Desktop, 2 Spalten Handy; Inhalt max.
   1120 px breit. Umbruch auf Handy-Maße bei 700 px.
 - Jedes Foto sitzt mittig in einem quadratischen Passepartout (9 % Rand) im eigenen Seitenverhältnis.

@@ -5,7 +5,7 @@ CSS und JavaScript sind eingebettet; neben der HTML-Datei gibt es keine weiteren
 
 Ausgelegt auf etwa 30–40 Bilder pro Album, für Desktop und Handy, mit hellem und dunklem Design.
 
-Stand: Version `1.3-poc`. Das Panorama-Widget ist ein Proof of Concept, siehe [SPEC.md](SPEC.md).
+Stand: Version `1.3.1-poc`. Das Panorama-Widget ist ein Proof of Concept, siehe [SPEC.md](SPEC.md).
 
 ## Voraussetzungen
 
@@ -80,6 +80,8 @@ lon = 8.56780                 # Pflicht
 ```
 
 - Die Reihenfolge der `[[bild]]`-Blöcke ist die Reihenfolge im Album; ein gelöschter Block lässt das Bild weg.
+- Der Untertitel darf mehrzeilig sein: `untertitel = "Erste Zeile\nZweite Zeile"` oder als TOML-Block in
+  drei Anführungszeichen. Zeilenumbrüche werden übernommen.
 - Datumsangaben gehen als TOML-Datum (`2026-07-12`) oder als Text (`"12.07.2026"`).
 - Die Karte erscheint, sobald es mindestens einen `[[wegpunkt]]` gibt und `anzeigen = true` ist.
 
