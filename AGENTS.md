@@ -10,6 +10,9 @@ Dieses Repository enthält ein einzelnes Python-Tool, `fotoalbum.py`. Was es tut
   Diesen Block nicht anfassen.
 - **Offene Entscheidungen nicht selbst treffen.** SPEC.md Abschnitt 9.1 listet fünf Fragen zum verlinkten
   Modus, die der Nutzer beantworten muss. Erst fragen, dann umsetzen.
+- **Die `album.toml` bleibt rückwärtskompatibel (SPEC G6).** Würde eine Änderung eine bisher gültige
+  Konfiguration brechen oder anders auswerten: nicht umsetzen, sondern zuerst ausdrücklich darauf hinweisen
+  und auf die Entscheidung des Nutzers warten.
 - **Sprache:** Bezeichner, Kommentare, Meldungen, Konfigurationsschlüssel und Oberfläche sind deutsch. So
   weiterführen.
 
@@ -51,8 +54,8 @@ Wie die Vorlage zusammengesetzt wird:
 7. **Abhängigkeiten:** nur Pillow und pillow-heif plus Standardbibliothek. Neue Abhängigkeiten vorher mit
    dem Nutzer klären.
 8. **Konfiguration:** Neue Schlüssel bekommen einen Default, eine Validierung in `cmd_build`, eine
-   kommentierte Zeile in `cmd_init` und einen Eintrag in README.md und SPEC.md. Bestehende `album.toml`
-   müssen weiter funktionieren.
+   kommentierte Zeile in `cmd_init` und einen Eintrag in README.md und SPEC.md. Der Default erhält das
+   bisherige Verhalten; bestehende `album.toml` müssen unverändert weiter funktionieren (SPEC G6).
 9. **Fehlermeldungen** über `fehler()`: deutsch, mit Hinweis, was zu tun ist.
 10. **`VERSION` erhöhen** bei jeder Änderung am Verhalten; SPEC.md und README.md im selben Commit anpassen.
 

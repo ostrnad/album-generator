@@ -16,6 +16,12 @@ Stand (Version `1.5`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das Geplan
 - **G4 – Konfiguration von Hand editierbar:** TOML mit deutschen Schlüsseln und erklärenden Kommentaren.
 - **G5 – Keine Anforderung an Screenreader und Tastaturbedienung:** Für die erzeugten Seiten spielen beide
   laut Nutzer keine Rolle. Vorhandene Tastaturbedienung darf bleiben, begründet aber keine Designentscheidung.
+- **G6 – Die `album.toml` bleibt rückwärtskompatibel:** Änderungen am Format der Konfiguration werden immer
+  so ausgeführt, dass jede bisher gültige `album.toml` unverändert weiter funktioniert und dasselbe Ergebnis
+  liefert. Das heißt: neue Schlüssel sind optional und haben einen Default, der das bisherige Verhalten
+  erhält; vorhandene Schlüssel werden weder umbenannt noch entfernt noch in ihrer Bedeutung geändert.
+  Ist das im Einzelfall nicht möglich, wird **vor jeder Änderung am Code** ausdrücklich darauf hingewiesen
+  und die Entscheidung des Nutzers abgewartet.
 - Hauptverbreitungsweg ist die Weitergabe der Datei (Ablage in der Cloud); daneben eigener Server.
 
 ## 2. Kommandozeile
