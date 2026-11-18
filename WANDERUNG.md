@@ -31,7 +31,6 @@ die Fotos der Tour und die Halte unterwegs. Man kann die Tour mit einem Regler a
 [[wanderung]]
 titel = "Über den Grat zur Alpe"
 zoom_stufen = [0, 2, 3]       # optional, siehe Entscheidung 3
-foto_abstand = 200            # in Metern
 grundkarte = true             # false = nur die Route, ohne Kartenkacheln
 kachel_qualitaet = 70         # 30–95
 
@@ -49,13 +48,18 @@ kachel_qualitaet = 70         # 30–95
   text = "Brotzeit mit Blick ins Tal"
   symbol = "tasse"
 
+  [[wanderung.foto]]          # Verweis auf ein [[bild]], schreibt init
+  bild = "IMG_1234.jpg"       # Dateiname wie in [[bild]]
+  etappe = 1
+  km = 3.4                    # Position entlang der Etappe
+  unterschrift = "Fast oben"  # optional, ersetzt die Unterschrift des Bildes
+
 [[bild]]
 datei = "IMG_1234.jpg"
-wanderung = 1                 # Nummer der Wanderung, 0 = keine
-etappe = 1
-km = 3.4                      # feste Position, hat Vorrang vor GPS
-galerie = false               # nur in der Tour zeigen, nicht im Fotoraster
+unterschrift = "Letzter Anstieg vor dem Grat"
 ```
+
+Die Fotos sind zentral als `[[bild]]` definiert. Die Wanderung verweist nur darauf (SPEC 9.6).
 
 ### 3.1 Schlüssel
 
@@ -65,7 +69,6 @@ galerie = false               # nur in der Tour zeigen, nicht im Fotoraster
 |---|---|---|
 | `titel` | – | Pflicht |
 | `zoom_stufen` | `[0, 2, 3]` | genau drei ganze Zahlen, aufsteigend (Bedeutung: Entscheidung 3) |
-| `foto_abstand` | `200` | Meter, größer als 0 |
 | `grundkarte` | `true` | |
 | `kachel_qualitaet` | `70` | 30–95 |
 
@@ -87,26 +90,51 @@ galerie = false               # nur in der Tour zeigen, nicht im Fotoraster
 | `titel`, `text` | – | eines von beiden muss gefüllt sein |
 | `symbol` | siehe Entscheidung 8 | `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera` |
 
-Neue Schlüssel an `[[bild]]`
+`[[wanderung.foto]]`
 
 | Schlüssel | Standard | Regel |
 |---|---|---|
-| `wanderung` | automatisch per GPS | `0` = keiner Wanderung zuordnen; sonst muss die Wanderung existieren |
-| `etappe` | – | nur zusammen mit `km`; bei mehrtägigen Touren dann Pflicht |
-| `km` | – | braucht `wanderung`; zwischen 0 und der Länge der Etappe |
-| `galerie` | `true` | `false` braucht eine Zuordnung zu einer Wanderung, sonst wäre das Foto nirgends zu sehen |
+| `bild` | – | Pflicht; ein `datei`-Wert aus `[[bild]]`; kein Panorama |
+| `etappe` | `1` | die Etappe muss existieren; bei mehrtägigen Touren Pflicht |
+| `km` | – | Pflicht; zwischen 0 und der Länge der Etappe |
+| `unterschrift` | Unterschrift des Bildes | optional |
+
+`[[bild]]` bekommt keine neuen Schlüssel.
 
 ### 3.2 Fehler
 
 Diese Fälle brechen den Bau mit einer klaren Meldung ab, die sagt, was zu tun ist:
 
-- unbekannter Schlüssel in `[[wanderung]]`, `[[wanderung.etappe]]` oder `[[wanderung.halt]]`
+- unbekannter Schlüssel in `[[wanderung]]`, `[[wanderung.etappe]]`, `[[wanderung.halt]]` oder
+  `[[wanderung.foto]]`
 - ungültige Zoomstufen, fehlende oder leere GPX-Datei, unbekanntes Symbol
 - `km` jenseits der Etappenlänge
-- `km` an einem Bild einer mehrtägigen Tour ohne `etappe`
-- `wanderung`, `etappe` oder `km` an einem Panorama
+- `[[wanderung.foto]]` ohne `etappe` bei einer mehrtägigen Tour
+- Verweis auf ein Bild, das es nicht gibt, oder auf ein Panorama
+- dasselbe Bild zweimal in derselben Wanderung
 
 Unbekannte Schlüssel an `[[bild]]` bleiben erlaubt wie bisher (G6).
+
+### 3.3 Was `init` schreibt
+
+Die Zuordnung der Fotos passiert in `init`, nicht beim Bauen. So sieht und ändert man sie in der `album.toml`,
+bevor die Seite entsteht.
+
+- `init` sucht `.gpx`-Dateien im Ordner (nicht in Unterordnern, ohne versteckte Dateien).
+- Wie die Dateien zu Wanderungen zusammengefasst werden: Entscheidung 14.
+- Jede GPX-Datei wird eine Etappe. Reihenfolge: nach der ersten Zeit in der Datei, sonst nach Dateinamen.
+- Je Etappe schreibt `init` `gpx`, `titel = "Tag n"` und `datum` (Entscheidung 7). `von` und `bis` stehen
+  auskommentiert da.
+- Jedes Foto mit GPS kommt zum nächsten Routenpunkt aller Etappen, wenn er höchstens 200 m entfernt ist
+  (`FOTO_ABSTAND_M`, eine Konstante wie `WEGPUNKT_RADIUS_KM`). Dafür schreibt `init` einen
+  `[[wanderung.foto]]`-Block mit `bild`, `etappe` und `km` (auf 0,1 km gerundet).
+- Fotos weiter weg, Fotos ohne GPS und Panoramen bekommen keinen Block.
+- Die Blöcke stehen nach Etappe und km sortiert.
+- Für Halte steht ein auskommentiertes Beispiel da.
+- `init` schreibt keine `[galerie]`. Alle Fotos stehen also auch im Raster.
+
+Danach kann man Blöcke löschen, ändern oder von Hand ergänzen. Ein erneutes `init --force` überschreibt die
+ganze Datei, wie bisher.
 
 ## 4. Aufbereitung beim Bauen
 
@@ -135,14 +163,12 @@ Je Etappe (Berechnung: Entscheidung 1):
 Für die ganze Tour: Strecke, Aufstieg und Abstieg zusammengezählt, höchster Punkt ist das Maximum, Dauer ist
 die Summe der Etappen (Nächte zählen nicht).
 
-### 4.4 Fotos zuordnen
+### 4.4 Fotos der Tour
 
-- Ein Foto mit GPS kommt zum nächsten Routenpunkt, wenn dieser höchstens `foto_abstand` entfernt ist. Bei
-  mehrtägigen Touren gehört es damit auch zur passenden Etappe.
-- Liegt das Foto weiter weg, gehört es zu keiner Wanderung.
-- Angaben in der `album.toml` (`wanderung`, `etappe`, `km`) haben Vorrang vor GPS.
-- Panoramen werden nie zugeordnet.
-- Im Album steht nur die Position auf der Route (Etappe und km), nie die GPS-Koordinate des Fotos (G3).
+- Zur Tour gehören genau die Fotos aus `[[wanderung.foto]]`. Beim Bauen wird kein GPS ausgewertet.
+- In der Tour stehen die Fotos nach Etappe und km sortiert.
+- Ein Foto darf in mehreren Wanderungen vorkommen.
+- Im Album steht nur die Position auf der Route (Etappe und km), nie eine GPS-Koordinate (G3).
 
 ### 4.5 Kartenkacheln
 
@@ -295,10 +321,13 @@ Diese Halte entstehen von selbst aus `von` und `bis`:
 
 ## 12. Fotos, Raster und Großansicht
 
-- Fotos einer Wanderung stehen weiter im Fotoraster, außer bei `galerie = false`.
-- Mit `galerie = false` fehlt das Foto im Raster und beim Blättern in der Großansicht vom Raster aus. In der
-  Tour (Karte, Leiste, Detail, Liste) ist es da.
+- Tour und Fotoraster sind unabhängig. Was im Raster steht, regelt `[galerie]` (SPEC 9.6). Ohne `[galerie]`
+  stehen alle Fotos im Raster, auch die der Tour.
+- Ein Foto nur in der Tour zeigen: in `[galerie]` weglassen.
+- Unterschrift in der Tour: die vom Verweis, sonst die vom Bild.
 - Aus der Tour geöffnet, blättert die Großansicht durch die Fotos der Tour in ihrer Reihenfolge.
+- Jedes Foto steckt nur einmal in der Datei. Die Tour nutzt die Vorschauen aus dem Raster. Fotos, die nicht im
+  Raster stehen, bekommen einen eigenen Datenblock (SPEC 9.6).
 
 ## 13. Allgemeines
 
@@ -324,12 +353,13 @@ Im Dunkeln wird nur das Kartenbild abgedunkelt.
 - **G1:** Kacheln, Route und Fotos stecken in der Datei.
 - **G3:** Es werden nur Etappe und km ausgegeben, keine Foto-Koordinaten. Die Route selbst ist bewusst
   konfiguriert, wie die Wegpunkte.
-- **G6:** Alle neuen Schlüssel sind optional. Ohne `[[wanderung]]` bleibt jedes Album wie bisher.
+- **G6:** Alle neuen Schlüssel sind optional, `[[bild]]` bekommt keine neuen. Ohne `[[wanderung]]` bleibt
+  jedes Album wie bisher.
 - **Dateigröße:** Kacheln machen die Datei deutlich größer. Der Bau nennt die Größe.
 
 ## 14. Offene Entscheidungen
 
-Vor der Umsetzung mit dem Nutzer zu klären. Fragen 1–8 stammen vom Nutzer, 9–13 sind beim Ausarbeiten
+Vor der Umsetzung mit dem Nutzer zu klären. Fragen 1–8 stammen vom Nutzer, 9–14 sind beim Ausarbeiten
 dazugekommen.
 
 1. **Kennzahlen:** selbst berechnen oder aus der GPX übernehmen (Bergfex, `TrackStatsExtension`)?
@@ -344,7 +374,8 @@ dazugekommen.
 5. **Mehrere Spuren in einer GPX:** aneinanderhängen oder erkennen und anzeigen? Empfehlung: aneinanderhängen;
    Lücken auf der Karte nicht verbinden.
 6. **Höchstzahl Kacheln:** Empfehlung: 3000 pro Wanderung, Warnung ab 2000, Größe im Bau anzeigen.
-7. **Datum einer Etappe ohne `datum`:** aus der ersten GPX-Zeit, sonst ohne Datum? Empfehlung: ja.
+7. **Datum einer Etappe:** `init` schreibt es aus der ersten GPX-Zeit. Fehlt die Zeit, steht kein Datum da.
+   Beim Bauen wird nichts ergänzt. Empfehlung: ja.
 8. **Symbole:** feste Liste oder frei erweiterbar? Empfehlung: feste Liste, Fehler bei unbekanntem Symbol.
 9. **Symbol des Starts und Standard-Symbol eines Halts:** Die Liste hat kein Start-Symbol; der Entwurf zeigt
    dort versehentlich den Mond des Hell/Dunkel-Knopfs. Empfehlung: ein eigenes Symbol `start` für den Start;
@@ -357,6 +388,11 @@ dazugekommen.
     Einstellung wie die Karte. So lässt sich auch ohne Internet gegen einen lokalen Kachelserver testen.
 13. **Name aus der GPX** (`trk/name`, `metadata/name`): wofür? Empfehlung: nicht verwenden, da Titel in der
     `album.toml` stehen.
+
+14. **GPX-Dateien zu Wanderungen zusammenfassen** (in `init`): Empfehlung: Dateien, deren erste Zeiten auf
+    aufeinanderfolgende Tage fallen, werden eine mehrtägige Wanderung. Alle anderen werden je eine eigene
+    Wanderung. Dateien ohne Zeit werden je eine eigene Wanderung. Zusammenlegen oder Trennen geht danach von
+    Hand.
 
 Außerdem ist zu klären, ob SPEC 9.2 („Route aus GPX-Datei" für die Wegpunkte-Karte) mit diesem Widget erledigt
 ist.
@@ -371,4 +407,6 @@ Zusätzlich zu den Prüfungen in AGENTS.md:
 - Eintägig und mehrtägig, jeweils Desktop und Handy, hell und dunkel, und ohne JavaScript.
 - Regler, Blättern, Tag-Schalter, Zoom per Knopf, Mausrad und zwei Fingern, Foto-Fenster, Großansicht aus der
   Tour.
-- `galerie = false`: Foto fehlt im Raster, ist in der Tour da.
+- `init` mit GPX-Dateien und Fotos mit GPS: Blöcke, Etappen und km stimmen; Fotos weiter als 200 m weg
+  fehlen.
+- `[galerie]` ohne ein Tour-Foto: Foto fehlt im Raster, ist in der Tour da und nur einmal in der Datei.
