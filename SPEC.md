@@ -72,11 +72,8 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
 
 ### 6.1 Design „D · Passepartout"
 
-- Schrift Bricolage Grotesque (400, 600), als WOFF2 eingebettet.
-- Farben hell: Grund `#DCE3DD`, Text `#1F2A24`, gedämpft `#4A584F`, Passepartout `#FFFFFF`,
-  Großansicht-Grund `#CFD8D1`.
-- Farben dunkel: Grund `#161C18`, Text `#E6ECE7`, gedämpft `#A9B5AC`, Passepartout `#242C27` mit Kontur
-  `#36413A`, Großansicht-Grund `#0F1411`.
+- Das gemeinsame Grunddesign (Farben, Schrift, Abstände, Knöpfe und andere Bausteine) steht in
+  [DESIGN.md](DESIGN.md). Die Abschnitte 6.1–6.7 beschreiben nur, was die einzelnen Teile darüber hinaus tun.
 - Kopf zentriert: Titel, optionale Unterzeile (Zeilenumbrüche aus der Konfiguration bleiben erhalten),
   optionales Datum als Pille. Fuß: „N Fotos".
 - Raster: `repeat(auto-fill, minmax(min(300px, 44%), 1fr))` → 3 Spalten Desktop, 2 Spalten Handy; Inhalt max.
