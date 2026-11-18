@@ -59,6 +59,7 @@ Wie die Vorlage zusammengesetzt wird:
 8. **Konfiguration:** Neue Schlüssel bekommen einen Default, eine Validierung in `cmd_build`, eine
    kommentierte Zeile in `cmd_init` und einen Eintrag in README.md und SPEC.md. Der Default erhält das
    bisherige Verhalten; bestehende `album.toml` müssen unverändert weiter funktionieren (SPEC G6).
+   Was nur ein Widget betrifft, kommt an den Verweis im Widget, nicht an `[[bild]]` (SPEC 9.6).
 9. **Fehlermeldungen** über `fehler()`: deutsch, mit Hinweis, was zu tun ist.
 10. **`VERSION` erhöhen** bei jeder Änderung am Verhalten; SPEC.md und README.md im selben Commit anpassen.
 

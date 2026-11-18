@@ -235,3 +235,52 @@ Ausdrücklich nicht gewünscht: quer gehaltene und senkrecht geschwenkte Panoram
 Eigener Abschnitt pro Wanderung mit Karte, Höhenprofil, Regler, Fotos und Halten, ein- oder mehrtägig.
 Vollständig beschrieben in [WANDERUNG.md](WANDERUNG.md). Vor der Umsetzung sind die Fragen in deren
 Abschnitt 14 zu klären.
+
+### 9.6 Bilder zentral, Widgets verweisen (entschieden, nicht umgesetzt)
+
+Fotos werden einmal als `[[bild]]` definiert. Widgets verweisen über den Dateinamen darauf.
+
+- Am `[[bild]]` steht nur, was zum Foto selbst gehört: `datei`, `unterschrift`, `datum`, `panorama`,
+  `panorama_bildwinkel`. Neue Widgets fügen dort keine Schlüssel hinzu.
+- Was nur in einem Widget gilt, steht am Verweis dieses Widgets. Ein Verweis darf `unterschrift` ersetzen.
+- Verweis ist der Wert von `datei`, genau so geschrieben.
+- Zuordnungen, die aus EXIF-Daten berechnet werden (z. B. Fotos zu einer Wanderung), schreibt `init` in die
+  `album.toml`. Beim Bauen wird dafür kein EXIF ausgewertet. So kann man alles vor dem Bauen prüfen und ändern.
+
+**Galerie (das Fotoraster):**
+
+- Neue, optionale Tabelle `[galerie]` mit `bilder`: Inhalt und Reihenfolge des Rasters. Ein Eintrag ist ein
+  Dateiname oder eine Tabelle mit `bild` und `unterschrift`:
+
+  ```toml
+  [galerie]
+  bilder = [
+    "IMG_1300.jpg",
+    { bild = "IMG_1234.jpg", unterschrift = "Andere Unterschrift im Raster" },
+  ]
+  ```
+
+- Fehlt `[galerie]`, zeigt das Raster alle `[[bild]]` in Dateireihenfolge, wie bisher (G6).
+- `init` schreibt keine `[galerie]`.
+- Der Fuß „N Fotos" und der Zähler der Großansicht zählen nur die Galerie.
+- Aus dem Raster geöffnet, blättert die Großansicht in der Reihenfolge der Galerie. Aus einem anderen Widget
+  geöffnet, in dessen Reihenfolge.
+
+**Prüfungen beim Bauen:**
+
+- Ein Verweis auf eine Datei, die es in `[[bild]]` nicht gibt, ist ein Fehler.
+- Dasselbe Bild zweimal in `[galerie]` ist ein Fehler.
+- Steht dieselbe `datei` mehrfach in `[[bild]]`, ist das nur dann ein Fehler, wenn ein Verweis darauf zeigt.
+  Ohne Verweise bleibt es erlaubt wie bisher (G6).
+- Ein `[[bild]]`, auf das nichts verweist, ergibt eine Warnung. Es wird nicht verarbeitet und nicht
+  eingebettet. Das kann nur mit `[galerie]` passieren.
+
+**Einbetten:**
+
+- Jedes Bild wird einmal verarbeitet und einmal eingebettet, egal wie viele Widgets darauf verweisen.
+- Die Vorschauen stecken wie bisher im `<img>` des Rasters. Widgets, die ohnehin nur mit JavaScript laufen
+  (z. B. die Wanderung), holen sie sich von dort.
+- Bilder, die nicht im Raster stehen, bekommen einen eigenen Datenblock.
+
+**Bei der Umsetzung anzupassen:** Abschnitte 4, 5, 6.1 und 6.3 sowie README.md (Konfiguration und der Satz
+zur Reihenfolge der `[[bild]]`-Blöcke).
