@@ -1,7 +1,9 @@
 # AGENTS.md – Arbeitsanweisungen für Coding-Agenten
 
 Dieses Repository enthält ein einzelnes Python-Tool, `fotoalbum.py`. Was es tut und tun soll, steht in
-[SPEC.md](SPEC.md); die Benutzung in [README.md](README.md). Lies SPEC.md, bevor du etwas änderst.
+[SPEC.md](SPEC.md); die Benutzung in [README.md](README.md); das gemeinsame Grunddesign, auf dem alle Teile
+der Seite aufbauen, in [DESIGN.md](DESIGN.md). Lies SPEC.md, bevor du etwas änderst, und DESIGN.md, bevor du
+etwas am Aussehen änderst.
 
 ## Wichtig zuerst
 
