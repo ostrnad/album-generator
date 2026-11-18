@@ -1,0 +1,374 @@
+# WANDERUNG – Das Wanderungs-Widget
+
+**Stand: geplant, nicht umgesetzt.** Vor der Umsetzung müssen die Fragen in Abschnitt 14 beantwortet sein.
+
+Dieses Dokument beschreibt, was das Widget tut und wie es aussieht. Es baut auf dem Grunddesign in
+[DESIGN.md](DESIGN.md) auf und auf den Grundsätzen G1–G6 in [SPEC.md](SPEC.md). Vorlage für das Aussehen sind
+die Entwürfe „Wanderung" und „Mehrtägig" im Design-Artefakt.
+
+## 1. Zweck
+
+Eine Wanderung erscheint im Album als eigener Abschnitt. Er zeigt eine Karte mit der Route, ein Höhenprofil,
+die Fotos der Tour und die Halte unterwegs. Man kann die Tour mit einem Regler abgehen.
+
+- Eine Tour dauert einen oder mehrere Tage. Ein Album kann mehrere Wanderungen enthalten.
+- Alles steckt in der einen HTML-Datei, auch die Kartenkacheln. Das Widget funktioniert offline.
+- Das Format ist neu. Es gibt keine älteren Wanderungs-Formate, die weiter gelten müssen.
+
+## 2. Begriffe
+
+| Begriff | Bedeutung |
+|---|---|
+| Wanderung | eine ganze Tour, ein Abschnitt im Album |
+| Etappe | ein Tag der Tour, mit einer eigenen GPX-Datei; eine eintägige Tour hat genau eine |
+| Halt | ein Ort an der Route mit Titel, Text und Symbol, z. B. Rast oder Gipfel |
+| Eintrag | ein Foto oder ein Halt der Tour |
+| Ansicht | bei mehrtägigen Touren „Gesamt" oder ein einzelner Tag |
+
+## 3. Konfiguration
+
+```toml
+[[wanderung]]
+titel = "Über den Grat zur Alpe"
+zoom_stufen = [0, 2, 3]       # optional, siehe Entscheidung 3
+foto_abstand = 200            # in Metern
+grundkarte = true             # false = nur die Route, ohne Kartenkacheln
+kachel_qualitaet = 70         # 30–95
+
+  [[wanderung.etappe]]        # eine pro Tag
+  gpx = "tag1.gpx"
+  titel = "Tag 1"
+  datum = "2026-08-04"
+  von = "Parkplatz"           # wird zum Start
+  bis = "Berghütte"           # wird zur Übernachtung bzw. zum Ziel
+
+  [[wanderung.halt]]
+  etappe = 1
+  km = 2.7                    # Position entlang der Etappe
+  titel = "Rast"
+  text = "Brotzeit mit Blick ins Tal"
+  symbol = "tasse"
+
+[[bild]]
+datei = "IMG_1234.jpg"
+wanderung = 1                 # Nummer der Wanderung, 0 = keine
+etappe = 1
+km = 3.4                      # feste Position, hat Vorrang vor GPS
+galerie = false               # nur in der Tour zeigen, nicht im Fotoraster
+```
+
+### 3.1 Schlüssel
+
+`[[wanderung]]`
+
+| Schlüssel | Standard | Regel |
+|---|---|---|
+| `titel` | – | Pflicht |
+| `zoom_stufen` | `[0, 2, 3]` | genau drei ganze Zahlen, aufsteigend (Bedeutung: Entscheidung 3) |
+| `foto_abstand` | `200` | Meter, größer als 0 |
+| `grundkarte` | `true` | |
+| `kachel_qualitaet` | `70` | 30–95 |
+
+`[[wanderung.etappe]]` – mindestens eine pro Wanderung
+
+| Schlüssel | Standard | Regel |
+|---|---|---|
+| `gpx` | – | Pflicht; Pfad relativ zur `album.toml`; die Datei muss existieren und Punkte enthalten |
+| `titel` | `"Tag n"` | |
+| `datum` | siehe Entscheidung 7 | Datum wie sonst in der `album.toml` |
+| `von`, `bis` | – | optional |
+
+`[[wanderung.halt]]`
+
+| Schlüssel | Standard | Regel |
+|---|---|---|
+| `etappe` | `1` | die Etappe muss existieren |
+| `km` | – | Pflicht; zwischen 0 und der Länge der Etappe |
+| `titel`, `text` | – | eines von beiden muss gefüllt sein |
+| `symbol` | siehe Entscheidung 8 | `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera` |
+
+Neue Schlüssel an `[[bild]]`
+
+| Schlüssel | Standard | Regel |
+|---|---|---|
+| `wanderung` | automatisch per GPS | `0` = keiner Wanderung zuordnen; sonst muss die Wanderung existieren |
+| `etappe` | – | nur zusammen mit `km`; bei mehrtägigen Touren dann Pflicht |
+| `km` | – | braucht `wanderung`; zwischen 0 und der Länge der Etappe |
+| `galerie` | `true` | `false` braucht eine Zuordnung zu einer Wanderung, sonst wäre das Foto nirgends zu sehen |
+
+### 3.2 Fehler
+
+Diese Fälle brechen den Bau mit einer klaren Meldung ab, die sagt, was zu tun ist:
+
+- unbekannter Schlüssel in `[[wanderung]]`, `[[wanderung.etappe]]` oder `[[wanderung.halt]]`
+- ungültige Zoomstufen, fehlende oder leere GPX-Datei, unbekanntes Symbol
+- `km` jenseits der Etappenlänge
+- `km` an einem Bild einer mehrtägigen Tour ohne `etappe`
+- `wanderung`, `etappe` oder `km` an einem Panorama
+
+Unbekannte Schlüssel an `[[bild]]` bleiben erlaubt wie bisher (G6).
+
+## 4. Aufbereitung beim Bauen
+
+### 4.1 GPX lesen
+
+- Gelesen werden Spuren (`trk`/`trkseg`/`trkpt`). Gibt es keine, dann Routen (`rte`/`rtept`).
+- Höhe (`ele`) und Zeit (`time`) sind optional. Der XML-Namensraum spielt keine Rolle.
+- Mehrere Spuren in einer Datei: siehe Entscheidung 5.
+
+### 4.2 Route vereinfachen
+
+- Jede Etappe wird auf höchstens etwa 1500 gleichmäßig verteilte Punkte gebracht, mit mindestens 10 m
+  Abstand.
+- Fehlende Höhen und Zeiten werden entlang der Strecke aus den Nachbarpunkten ergänzt.
+
+### 4.3 Kennzahlen
+
+Je Etappe (Berechnung: Entscheidung 1):
+
+- **Strecke:** Summe der Abstände zwischen den ursprünglichen GPX-Punkten.
+- **Aufstieg und Abstieg:** Höhe vorher auf etwa 40 m Strecke geglättet. Kleine Schwankungen unter 3 m
+  zählen nicht.
+- **Höchster Punkt.**
+- **Dauer:** letzte minus erste Zeit. Ohne Zeitangaben gibt es keine Dauer.
+
+Für die ganze Tour: Strecke, Aufstieg und Abstieg zusammengezählt, höchster Punkt ist das Maximum, Dauer ist
+die Summe der Etappen (Nächte zählen nicht).
+
+### 4.4 Fotos zuordnen
+
+- Ein Foto mit GPS kommt zum nächsten Routenpunkt, wenn dieser höchstens `foto_abstand` entfernt ist. Bei
+  mehrtägigen Touren gehört es damit auch zur passenden Etappe.
+- Liegt das Foto weiter weg, gehört es zu keiner Wanderung.
+- Angaben in der `album.toml` (`wanderung`, `etappe`, `km`) haben Vorrang vor GPS.
+- Panoramen werden nie zugeordnet.
+- Im Album steht nur die Position auf der Route (Etappe und km), nie die GPS-Koordinate des Fotos (G3).
+
+### 4.5 Kartenkacheln
+
+- Kacheln kommen von OpenStreetMap. Die Quellenangabe steht sichtbar auf der Karte.
+- Je Zoomstufe werden nur die Kacheln geladen, die die Route berührt, plus ein Ring von Kacheln drumherum.
+- Jede Kachel steckt nur einmal pro Wanderung in der Datei. Sie wird als JPEG mit `kachel_qualitaet`
+  gespeichert.
+- Zwischenspeicher wie bei der Karte: `~/.cache/fotoalbum/kacheln`, gleicher Abruf wie in SPEC 6.6.
+- Es gilt eine Höchstzahl von Kacheln (Entscheidung 6). Der Bau nennt Anzahl und Größe der Kacheln.
+- Mit `grundkarte = false` werden keine Kacheln geladen. Die Route liegt dann auf einer leichten Fläche.
+
+## 5. Platz auf der Seite
+
+- Jede Wanderung ist ein eigener Abschnitt, in der Reihenfolge der `album.toml`. Die Wanderungen stehen
+  zwischen Karte und Fotoraster.
+- Der Abschnitt ist einklappbar wie Stationen und Karte (SPEC 6.5): am Desktop offen, am Handy zu. Der Kopf ist
+  eine Pille mit dem Titel der Wanderung.
+- Der Inhalt liegt in einem Passepartout über die volle Breite (Rand 28 px, am Handy 12 px).
+
+## 6. Aufbau
+
+### 6.1 Desktop
+
+Von oben nach unten:
+
+1. Tag-Schalter mit Zeile darunter (nur mehrtägig, Abschnitt 11)
+2. Kennzahlen in einer Reihe, mittig
+3. Karte links, Detailspalte rechts (300 px breit)
+4. Höhenprofil mit Regler, volle Breite
+5. „Unterwegs"-Liste
+
+### 6.2 Handy
+
+Alles untereinander: Tag-Schalter, Kennzahlen in zwei Reihen, Karte im Format 5:4, Höhenprofil mit Regler,
+Detailkarte, „Unterwegs"-Liste.
+
+### 6.3 Kennzahlen
+
+- Je Kennzahl ein Wert (20 px fett, am Handy 17 px) und darunter eine Beschriftung (13 px, gedämpft).
+- Reihenfolge: Datum (nur mehrtägig), Strecke, Aufstieg, Abstieg, Höchster Punkt, Dauer.
+- Schreibweise: `4,7 km`, `825 m`, `2.093 m`, `2:53 h`. Fehlt ein Wert, entfällt die Kennzahl.
+
+## 7. Karte
+
+### 7.1 Bedienung
+
+- Drei feste Zoomstufen. Zoomen springt von Stufe zu Stufe.
+- Knöpfe: Plus, Minus, „Alles zeigen". Es sind schwebende Knöpfe (44 px) oben rechts auf der Karte.
+- Maus: Ziehen verschiebt, Doppelklick zoomt hinein, Strg/⌘ + Mausrad zoomt.
+- Touch: zwei Finger verschieben und zoomen. Ein Finger scrollt die Seite.
+- „Alles zeigen" kehrt zur ersten Stufe zurück, mit der ganzen Route der Ansicht im Bild.
+- Verschieben geht nur so weit, wie Kacheln vorhanden sind.
+
+### 7.2 Zeichnung
+
+- Route: Orange, 3,5 px, mit weißem Rand.
+- Anfang der Route: grüner Punkt. Ende: roter Punkt. Beide mit weißem Rand.
+- Foto: Marke mit Kamera-Symbol. Halt: Marke mit seinem Symbol. Marken sind 30 px groß, in „Betont", mit
+  weißem Rand.
+- Der ausgewählte Eintrag bekommt einen orangen Ring.
+- Die Cursor-Position des Reglers ist ein orangener Punkt auf der Route.
+- Im Dunkelmodus wird nur das Kartenbild abgedunkelt. Route, Punkte und Marken bleiben gleich.
+
+### 7.3 Foto-Fenster
+
+- Ein Klick auf eine Foto-Marke öffnet ein kleines Fenster an der Marke. Es zeigt das Foto im Passepartout.
+- Es hat Knöpfe für zurück, weiter und schließen.
+- Ein Klick auf das Foto öffnet die Großansicht (Abschnitt 12).
+
+## 8. Höhenprofil und Regler
+
+### 8.1 Profil
+
+- Das Profil zeigt die Höhe über der Strecke. Unten steht die Strecke in km, links die Höhe in m.
+- Feine Rasterlinien, die Fläche unter der Linie leicht orange.
+
+### 8.2 Leiste mit Einträgen
+
+- Über dem Profil steht eine Leiste mit allen Einträgen an ihrer Position.
+- Desktop, einzelner Tag: Fotos als kleine Passepartouts (50 px), Halte als Marke mit Namen darunter.
+- Sonst (Handy, „Gesamt"): Fotos als Punkte, Halte als Marke.
+- Ein Klick auf einen Eintrag wählt ihn aus.
+
+### 8.3 Regler
+
+- Unter dem Profil liegt eine Schiene. Der Teil bis zum Griff ist orange.
+- Jeder Eintrag ist ein kleiner Punkt auf der Schiene.
+- Der Griff ist 44 px groß, weiß, mit orangem Rand.
+- Ziehen am Griff bewegt den Cursor im Profil und den Punkt auf der Karte mit.
+- Unter dem Regler steht: Etappe (nur in „Gesamt"), km, Höhe und Steigung in Prozent. Die Steigung kommt aus
+  der geglätteten Höhe.
+
+### 8.4 Auswahl und freier Cursor
+
+- Ist ein Eintrag ausgewählt, steht der Griff an seiner Stelle. Einen eigenen Cursor gibt es dann nicht.
+- Wer den Griff zieht, hebt die Auswahl auf. Dann ist der freie Cursor zu sehen.
+- Was zu Beginn ausgewählt ist: Entscheidung 11.
+
+## 9. Detail
+
+- Desktop: Spalte rechts neben der Karte, auf einer leichten Fläche. Handy: Karte unter dem Profil.
+- Oben eine kleine Zeile: Art des Eintrags, Etappe (nur in „Gesamt"), km und Höhe. Beispiel:
+  `Foto · Tag 2 · 2,0 km · 1.933 m`.
+- Foto: im quadratischen Passepartout, darunter die Unterschrift. Ein Klick öffnet die Großansicht.
+- Halt: großes Symbol, Titel und Text.
+- Unten: zurück, Zähler `n / m`, weiter. Gezählt werden die Einträge der aktuellen Ansicht.
+- Blättern wählt den Eintrag aus und bewegt Regler und Karte mit.
+
+## 10. „Unterwegs"-Liste
+
+- Überschrift „Unterwegs", mittig, gedämpft.
+- Aufbau wie die Zeitleiste der Stationen (SPEC 6.4): senkrechte Linie, Marke mit Symbol, darüber klein
+  `km · Höhe`, darunter der Titel. Fotos zeigen rechts ein kleines Passepartout.
+- Halte zeigen `Titel – Text`.
+- Der ausgewählte Eintrag ist fett und hat einen orangen Ring um die Marke.
+- Ein Klick auf einen Eintrag wählt ihn aus.
+- Desktop, ein Tag: die Einträge in zwei Spalten. „Gesamt": je Etappe eine Spalte, nebeneinander, mit
+  Überschrift `Tag n` und darunter `Datum · km`. Handy: alles untereinander.
+
+## 11. Mehrtägige Touren
+
+### 11.1 Tag-Schalter
+
+- Eine Reihe von Knöpfen: `Gesamt | Tag 1 | Tag 2 | …`. Der gewählte ist gefüllt.
+- Darunter eine Zeile, bei „Gesamt": `3 Tage · 28,4 km · Parkplatz → Talstation`. Bei einem Tag:
+  `Titel · Datum · von → bis`.
+- Bei eintägigen Touren gibt es keinen Schalter.
+
+### 11.2 Ansicht „Gesamt"
+
+- Die Etappen wechseln sich in drei Orangetönen ab. Jede hat eine Plakette `Tag n`.
+- Fotos und einfache Halte sind auf der Karte nur kleine Punkte (10 px). Übernachtung, Gipfel und Ziel behalten
+  ihr Symbol.
+- Das Profil läuft durch alle Tage. Trennlinien zeigen die Tagesgrenzen. Die Tage liegen auf abwechselnd
+  getönten Streifen, beschriftet mit `Tag n · km`.
+
+### 11.3 Ansicht eines Tages
+
+- Die gewählte Etappe ist orange. Die anderen sind gestrichelt und gedämpft.
+- Profil, Kennzahlen, Detail und Liste zeigen nur diese Etappe.
+
+### 11.4 Start, Übernachtung, Ziel
+
+Diese Halte entstehen von selbst aus `von` und `bis`:
+
+- `von` der ersten Etappe wird der Start.
+- `bis` jeder Etappe außer der letzten wird eine Übernachtung (Symbol `bett`).
+- `bis` der letzten Etappe wird das Ziel (Symbol `flagge`).
+- `von` späterer Etappen erscheint nur in der Zeile unter dem Tag-Schalter.
+
+## 12. Fotos, Raster und Großansicht
+
+- Fotos einer Wanderung stehen weiter im Fotoraster, außer bei `galerie = false`.
+- Mit `galerie = false` fehlt das Foto im Raster und beim Blättern in der Großansicht vom Raster aus. In der
+  Tour (Karte, Leiste, Detail, Liste) ist es da.
+- Aus der Tour geöffnet, blättert die Großansicht durch die Fotos der Tour in ihrer Reihenfolge.
+
+## 13. Allgemeines
+
+### 13.1 Ohne JavaScript
+
+Zu sehen sind nur der Abschnittskopf und die Kennzahlen der Wanderung. Karte, Profil, Detail und Liste
+erscheinen erst mit JavaScript.
+
+### 13.2 Hell und Dunkel
+
+Farben, Schrift und Schatten wie im übrigen Album (DESIGN.md). Orange, Grün und Rot sind in beiden Modi gleich.
+Im Dunkeln wird nur das Kartenbild abgedunkelt.
+
+### 13.3 Abgrenzung
+
+- Stationen (SPEC 6.4) und Wegpunkte (SPEC 6.6) bleiben eigene Dinge. Sie haben keine Verbindung zu Wanderungen
+  und Halten.
+- Ein Halt heißt in der Oberfläche nie „Station".
+- Eine Diashow ist ein eigenes Thema und hier nicht beschrieben.
+
+### 13.4 Grundsätze
+
+- **G1:** Kacheln, Route und Fotos stecken in der Datei.
+- **G3:** Es werden nur Etappe und km ausgegeben, keine Foto-Koordinaten. Die Route selbst ist bewusst
+  konfiguriert, wie die Wegpunkte.
+- **G6:** Alle neuen Schlüssel sind optional. Ohne `[[wanderung]]` bleibt jedes Album wie bisher.
+- **Dateigröße:** Kacheln machen die Datei deutlich größer. Der Bau nennt die Größe.
+
+## 14. Offene Entscheidungen
+
+Vor der Umsetzung mit dem Nutzer zu klären. Fragen 1–8 stammen vom Nutzer, 9–13 sind beim Ausarbeiten
+dazugekommen.
+
+1. **Kennzahlen:** selbst berechnen oder aus der GPX übernehmen (Bergfex, `TrackStatsExtension`)?
+   Empfehlung: selbst berechnen. Bergfex-Werte nur, wenn vorhanden und per Schalter gewünscht. Sonst weichen
+   die Werte je nach Quelle ab.
+2. **Eintägige Touren:** immer mit einer Etappe oder zusätzlich `gpx = "…"` direkt an `[[wanderung]]`?
+   Empfehlung: nur Etappen. Das ist ein Format, und `init` kann die Blöcke schreiben.
+3. **Zoomstufen:** feste Kartenstufen (`[12, 14, 15]`) oder relativ zur Stufe, bei der die Route ins Bild
+   passt (`[0, 2, 3]`)? Empfehlung: relativ. Dann passen eine 28-km-Tour und eine 5-km-Etappe gleich gut. Die
+   Stufen gelten je Ansicht (Gesamt, Tag).
+4. **Position eines Halts:** nur `km` oder auch `lat`/`lon`? Empfehlung: zuerst nur `km`.
+5. **Mehrere Spuren in einer GPX:** aneinanderhängen oder erkennen und anzeigen? Empfehlung: aneinanderhängen;
+   Lücken auf der Karte nicht verbinden.
+6. **Höchstzahl Kacheln:** Empfehlung: 3000 pro Wanderung, Warnung ab 2000, Größe im Bau anzeigen.
+7. **Datum einer Etappe ohne `datum`:** aus der ersten GPX-Zeit, sonst ohne Datum? Empfehlung: ja.
+8. **Symbole:** feste Liste oder frei erweiterbar? Empfehlung: feste Liste, Fehler bei unbekanntem Symbol.
+9. **Symbol des Starts und Standard-Symbol eines Halts:** Die Liste hat kein Start-Symbol; der Entwurf zeigt
+   dort versehentlich den Mond des Hell/Dunkel-Knopfs. Empfehlung: ein eigenes Symbol `start` für den Start;
+   Halte ohne `symbol` bekommen einen einfachen Punkt wie die Stationen.
+10. **Gemeinsame Symbol-Tabelle:** Sollen Halte und Stationen dieselbe Tabelle `SYMBOLE` nutzen? Empfehlung: ja.
+    Dann können auch Stationen die neuen Symbole verwenden.
+11. **Startzustand:** Was ist beim Öffnen ausgewählt? Empfehlung: nichts; der Griff steht am Anfang, das Detail
+    zeigt den ersten Eintrag.
+12. **Kachelquelle:** fest OpenStreetMap oder wie bei der Karte über `kacheln` in `[karte]`? Empfehlung: dieselbe
+    Einstellung wie die Karte. So lässt sich auch ohne Internet gegen einen lokalen Kachelserver testen.
+13. **Name aus der GPX** (`trk/name`, `metadata/name`): wofür? Empfehlung: nicht verwenden, da Titel in der
+    `album.toml` stehen.
+
+Außerdem ist zu klären, ob SPEC 9.2 („Route aus GPX-Datei" für die Wegpunkte-Karte) mit diesem Widget erledigt
+ist.
+
+## 15. Prüfen
+
+Zusätzlich zu den Prüfungen in AGENTS.md:
+
+- Testdaten: künstliche GPX-Dateien mit und ohne Höhe und Zeit, eine mit zwei Spuren, eine nur mit `rte`.
+  Fotos mit GPS nahe der Route und weit weg.
+- Kacheln von einem lokalen Testserver, nicht von OpenStreetMap.
+- Eintägig und mehrtägig, jeweils Desktop und Handy, hell und dunkel, und ohne JavaScript.
+- Regler, Blättern, Tag-Schalter, Zoom per Knopf, Mausrad und zwei Fingern, Foto-Fenster, Großansicht aus der
+  Tour.
+- `galerie = false`: Foto fehlt im Raster, ist in der Tour da.

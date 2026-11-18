@@ -218,6 +218,8 @@ Ausgabe per `-o` woanders, bricht der verlinkte Modus mit Fehlermeldung ab.
 
 Wegpunkte entlang eines GPX-Tracks verbinden statt per Luftlinie. Noch nicht spezifiziert.
 
+Verwandt: das Wanderungs-Widget (9.5). Ob 9.2 damit erledigt ist, ist offen.
+
 ### 9.3 Panorama (zurückgestellt)
 
 Vom Nutzer vorerst abgelehnt, bei Bedarf wieder aufgreifen: bildschirmfüllende Ansicht und „Speichern".
@@ -227,3 +229,9 @@ Ausdrücklich nicht gewünscht: quer gehaltene und senkrecht geschwenkte Panoram
 
 - Grundfarbe pro Album wählbar
 - Automatisierte Tests (siehe AGENTS.md)
+
+### 9.5 Wanderungen aus GPX-Dateien (spezifiziert, Entscheidungen offen)
+
+Eigener Abschnitt pro Wanderung mit Karte, Höhenprofil, Regler, Fotos und Halten, ein- oder mehrtägig.
+Vollständig beschrieben in [WANDERUNG.md](WANDERUNG.md). Vor der Umsetzung sind die Fragen in deren
+Abschnitt 14 zu klären.

@@ -29,11 +29,21 @@ Jede Farbe hat eine feste Aufgabe. Im Code heißt sie wie in der letzten Spalte.
 | Schwebend | `#FFFFFF` mit Schatten | `#242C27` mit Kontur | Knöpfe, die auf oder neben einem Bild liegen | `--nav-bg`, `--nav-shadow` |
 | Linie | Gedämpft, halb durchsichtig | ebenso | Linie der Zeitleiste | `--linie` |
 | Platzhalter | Grau, halb durchsichtig | gleich | Fläche, solange ein Bild noch lädt | – |
+| Leichte Fläche | Text, 5 % deckend | Text, 6 % deckend | ruhiger Hintergrund innerhalb eines Passepartouts (geplant: Wanderung) | – |
+
+Farben nur für Wanderungen (geplant, siehe [WANDERUNG.md](WANDERUNG.md)), hell und dunkel gleich:
+
+| Aufgabe | Wert | Wofür |
+|---|---|---|
+| Orange | `#E8590C` | Route, Cursor, Auswahl; Fläche unter dem Höhenprofil mit 20 % |
+| Orange hell, Orange dunkel | `#F08C4A`, `#A63D08` | zusammen mit Orange: die Etappen in der Ansicht „Gesamt" |
+| Grün | `#2B8A3E` | Anfang der Route |
+| Rot | `#C92A2A` | Ende der Route |
 
 Regeln:
 
 - **Keine weiteren Farben und keine Akzentfarbe.** Hervorgehoben wird mit „Betont", also dunkel auf hell
-  bzw. hell auf dunkel.
+  bzw. hell auf dunkel. Einzige Ausnahme sind die Wanderungsfarben oben, und nur für die genannten Zwecke.
 - **Hell und Dunkel gehören zusammen.** Jede Farbe hat beide Werte. Im Code stehen die hellen Werte in `CSS`,
   die dunklen in `DARK_VARS`.
 - **Im Dunkeln werden Schatten zu feinen Konturen**, weil man Schatten auf dunklem Grund nicht sieht.
@@ -86,6 +96,12 @@ Knöpfe, Marken). Nichts dazwischen.
   Zoomen, Hinweise auf dem Panorama).
 - **Marke:** kleine gefüllte Pille, 28 px hoch, in „Betont", mit Nummer oder Symbol. Für Kartenpunkte und
   Stationen.
+- **Auswahlring:** oranger Ring um eine Marke oder ein kleines Passepartout. Zeigt, was gerade ausgewählt
+  ist. Geplant für die Wanderung.
+- **Schalter:** eine Pille mit mehreren Knöpfen (je 44 px hoch). Der gewählte ist in „Betont" gefüllt.
+  Geplant für den Tag-Schalter der Wanderung.
+- **Kennzahl:** Wert groß und fett (20 px, am Handy 17 px), darunter die Beschriftung in „Normal klein",
+  gedämpft. Mehrere stehen mittig in einer Reihe. Geplant für die Wanderung.
 - **Symbole:** einfache Strichzeichnungen auf 24 × 24, Strichstärke 2, runde Enden, in der Textfarbe.
   18 px in Knöpfen, 20 px beim Blättern. Keine Emojis.
 
@@ -101,7 +117,7 @@ Knöpfe, Marken). Nichts dazwischen.
 
 ## 7. Aufbau der Seite
 
-Von oben nach unten: Kopf (Titel, Unterzeile, Datum als Pille) – Stationen – Karte – Fotos – Fuß
+Von oben nach unten: Kopf (Titel, Unterzeile, Datum als Pille) – Stationen – Karte – Wanderungen (geplant) – Fotos – Fuß
 („N Fotos"). Kopf und Fuß sind mittig. Der Hell/Dunkel-Knopf sitzt oben rechts in der Ecke. Jedes Teil
 dazwischen nimmt entweder die volle Inhaltsbreite ein oder sitzt im Fotoraster.
 
@@ -116,6 +132,7 @@ Wie die Teile das Grunddesign nutzen. Die Einzelheiten stehen in SPEC.md.
 | Stationen | Linie, Marken, Lesetext, Pille zum Aufklappen | 6.4, 6.5 |
 | Karte | Passepartout mit festem Rand, Marken, Route in „Betont", Pille zum Aufklappen | 6.5, 6.6 |
 | Panorama | Passepartout über die volle Breite, schwebende Zoomknöpfe und Hinweis | 6.7 |
+| Wanderung (geplant) | Passepartout über die volle Breite, Kennzahlen, Schalter, Marken, Auswahlring, schwebende Knöpfe, Wanderungsfarben, Pille zum Aufklappen | [WANDERUNG.md](WANDERUNG.md) |
 
 ## 9. Checkliste für ein neues Teil
 

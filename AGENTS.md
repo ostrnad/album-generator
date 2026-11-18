@@ -12,6 +12,7 @@ etwas am Aussehen änderst.
   Diesen Block nicht anfassen.
 - **Offene Entscheidungen nicht selbst treffen.** SPEC.md Abschnitt 9.1 listet fünf Fragen zum verlinkten
   Modus, die der Nutzer beantworten muss. Erst fragen, dann umsetzen.
+  Ebenso WANDERUNG.md Abschnitt 14 für das Wanderungs-Widget.
 - **Die `album.toml` bleibt rückwärtskompatibel (SPEC G6).** Würde eine Änderung eine bisher gültige
   Konfiguration brechen oder anders auswerten: nicht umsetzen, sondern zuerst ausdrücklich darauf hinweisen
   und auf die Entscheidung des Nutzers warten.
