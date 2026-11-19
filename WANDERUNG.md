@@ -393,7 +393,7 @@ Detailkarte, „Unterwegs"-Liste.
 
 Diese Halte entstehen von selbst aus `von` und `bis`:
 
-- `von` der ersten Etappe wird der Start.
+- `von` der ersten Etappe wird der Start (Symbol `start`).
 - `bis` jeder Etappe außer der letzten wird eine Übernachtung (Symbol `bett`).
 - `bis` der letzten Etappe wird das Ziel (Symbol `flagge`).
 - `von` späterer Etappen erscheint nur in der Zeile unter dem Tag-Schalter.
@@ -454,12 +454,10 @@ dazugekommen.
 8. **Symbole:** *Entschieden:* feste Liste im Programm (`SYMBOLE`). Alle Symbole der Liste sind erlaubt, auch `kamera`.
    Eigene Symbole über die `album.toml` (z. B. als SVG) gibt es nicht. Ein unbekannter Name ist ein Fehler, der
    die verfügbaren Namen nennt. Neue Symbole kommen per Änderung am Programm dazu.
-9. **Symbol des Starts und Standard-Symbol eines Halts:**
-   - *Entschieden:* Ein Halt ohne `symbol` bekommt `punkt`, wie eine Station.
-   - *Offen:* Symbol des Starts. Die Liste hat keins; der Entwurf zeigt dort versehentlich den Mond des
-     Hell/Dunkel-Knopfs. Empfehlung: ein eigenes Symbol `start`.
+9. **Symbol des Starts und Standard-Symbol eines Halts:** *Entschieden:* Der Start bekommt ein neues Symbol
+   `start`, einen Kreis mit Punkt in der Mitte. Ein Halt ohne `symbol` bekommt `punkt`, wie eine Station.
 10. **Gemeinsame Symbol-Tabelle:** *Entschieden:* Halte und Stationen nutzen dieselbe Tabelle `SYMBOLE` mit
-    `punkt`, `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera`. Stationen bekommen damit die neuen Symbole
+    `punkt`, `start`, `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera`. Stationen bekommen damit die neuen Symbole
     dazu; ihr Standard bleibt `punkt` (G6).
 11. **Startzustand:** Was ist beim Öffnen ausgewählt? Empfehlung: nichts; der Griff steht am Anfang, das Detail
     zeigt den ersten Eintrag.
