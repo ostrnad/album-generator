@@ -406,8 +406,8 @@ Vor der Umsetzung mit dem Nutzer zu klären. Fragen 1–8 stammen vom Nutzer, 9�
 dazugekommen.
 
 1. **Kennzahlen:** *Entschieden:* aus Bergfex, Schalter `eigene_kennzahlen` (Standard aus), siehe 4.3.
-2. **Eintägige Touren:** immer mit einer Etappe oder zusätzlich `gpx = "…"` direkt an `[[wanderung]]`?
-   Empfehlung: nur Etappen. Das ist ein Format, und `init` kann die Blöcke schreiben.
+2. **Eintägige Touren:** *Entschieden:* immer mit genau einer `[[wanderung.etappe]]`. Eine Kurzform `gpx` direkt
+   an `[[wanderung]]` gibt es nicht; dort ist `gpx` ein unbekannter Schlüssel und damit ein Fehler (3.2).
 3. **Zoomstufen:** *Entschieden:* relativ zur Stufe, bei der die Route ganz ins Bild passt, je Ansicht. Siehe 7.1.
 4. **Position eines Halts:** nur `km` oder auch `lat`/`lon`? Empfehlung: zuerst nur `km`.
 5. **Mehrere Spuren in einer GPX:** aneinanderhängen oder erkennen und anzeigen? Empfehlung: aneinanderhängen;
