@@ -148,6 +148,8 @@ bevor die Seite entsteht.
 - `init` sucht `.gpx`-Dateien im Ordner (nicht in Unterordnern, ohne versteckte Dateien).
 - Wie die Dateien zu Wanderungen zusammengefasst werden: Abschnitt 3.4.
 - Jede GPX-Datei wird eine Etappe. Reihenfolge: nach der ersten Zeit in der Datei, sonst nach Dateinamen.
+- Als `titel` der Wanderung schreibt `init` den Namen aus der ersten GPX-Datei der Wanderung (`trk/name`,
+  sonst `metadata/name`). Gibt es keinen, nimmt `init` den Dateinamen ohne Endung.
 - Je Etappe schreibt `init` `gpx`, `titel = "Tag n"` und `datum`. `von` und `bis` stehen auskommentiert da.
 - `datum` kommt aus der ersten Zeitangabe der GPX-Datei, umgerechnet wie in 3.4. Hat die Datei keine
   Zeitangaben, nimmt `init` das Aufnahmedatum des ersten Fotos der Etappe (nach km) und schreibt einen
@@ -474,9 +476,8 @@ dazugekommen.
 11. **Startzustand:** *Entschieden:* der erste Eintrag der Ansicht ist ausgewählt, meist der Start. Siehe 8.4.
 12. **Kachelquelle:** *Entschieden:* je Wanderung eigene Schlüssel `kacheln` und `quelle`, unabhängig von
     `[karte]`. Siehe 4.5.
-13. **Name aus der GPX** (`trk/name`, `metadata/name`): wofür? Empfehlung: nicht verwenden, da Titel in der
-    `album.toml` stehen.
-
+13. **Name aus der GPX:** *Entschieden:* `init` schlägt ihn als Titel der Wanderung vor, sonst den Dateinamen.
+    Der Bau liest ihn nicht aus der GPX-Datei, sondern nimmt `titel` aus der `album.toml`. Siehe 3.3.
 14. **GPX-Dateien zu Wanderungen zusammenfassen:** *Entschieden*, siehe Abschnitt 3.4.
 
 15. **Felder der Bergfex-Angaben:** Dafür wird eine echte, von Bergfex exportierte GPX-Datei gebraucht.
