@@ -429,7 +429,7 @@ dazugekommen.
 
 15. **Felder der Bergfex-Angaben:** Dafür wird eine echte, von Bergfex exportierte GPX-Datei gebraucht.
     Daran wird festgelegt, welches Feld welche Kennzahl liefert. Ohne Beispieldatei lässt sich 4.3 nicht
-    umsetzen.
+    umsetzen. Der Nutzer legt die Datei später ins Repository. Bis dahin wird das Widget nicht umgesetzt.
 
 Außerdem ist zu klären, ob SPEC 9.2 („Route aus GPX-Datei" für die Wegpunkte-Karte) mit diesem Widget erledigt
 ist.
