@@ -218,7 +218,8 @@ Ausgabe per `-o` woanders, bricht der verlinkte Modus mit Fehlermeldung ab.
 
 Wegpunkte entlang eines GPX-Tracks verbinden statt per Luftlinie. Noch nicht spezifiziert.
 
-Verwandt: das Wanderungs-Widget (9.5). Ob 9.2 damit erledigt ist, ist offen.
+Wird durch das Wanderungs-Widget (9.5) ersetzt und ist erledigt, sobald dieses umgesetzt ist. Die
+Wegpunkte-Karte (6.6) selbst bekommt keine GPX-Route.
 
 ### 9.3 Panorama (zurückgestellt)
 

@@ -489,8 +489,7 @@ zu laden. Grund: Dateigröße und die Nutzungsregeln von OpenStreetMap, die mass
 verbieten. Dazu gehört auch die Möglichkeit, die Kacheln in einem Verzeichnis neben der HTML-Datei abzulegen
 statt sie einzubetten (vgl. SPEC 9.1). Noch nicht beauftragt.
 
-Außerdem ist zu klären, ob SPEC 9.2 („Route aus GPX-Datei" für die Wegpunkte-Karte) mit diesem Widget erledigt
-ist.
+SPEC 9.2 („Route aus GPX-Datei") ist mit der Umsetzung dieses Widgets erledigt (Entscheidung des Nutzers).
 
 ## 15. Prüfen
 
