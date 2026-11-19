@@ -154,6 +154,12 @@ bevor die Seite entsteht.
 - Für Halte steht ein auskommentiertes Beispiel da.
 - `init` schreibt keine `[galerie]`. Alle Fotos stehen also auch im Raster.
 
+**Kachel-Schätzung:** Für jede Wanderung zählt `init`, wie viele Kacheln die Karte mit den Standard-Zoomstufen
+braucht, und schätzt die Größe (Anzahl mal etwa 20 KB). Dafür wird nichts heruntergeladen; die Anzahl
+ergibt sich aus der Route allein. `init` gibt beides aus und schreibt es als Kommentar an den
+`[[wanderung]]`-Block, z. B. `# Karte: etwa 640 Kacheln, etwa 13 MB`. Ändert man danach `zoom_stufen`, stimmt
+die Zahl nicht mehr; die genaue nennt der Bau.
+
 Danach kann man Blöcke löschen, ändern oder von Hand ergänzen. Ein erneutes `init --force` überschreibt die
 ganze Datei, wie bisher.
 
@@ -240,7 +246,8 @@ an einer echten Bergfex-GPX-Datei festzustellen (Entscheidung 15).
 - Jede Kachel steckt nur einmal pro Wanderung in der Datei. Sie wird als JPEG mit `kachel_qualitaet`
   gespeichert.
 - Zwischenspeicher wie bei der Karte: `~/.cache/fotoalbum/kacheln`, gleicher Abruf wie in SPEC 6.6.
-- Es gilt eine Höchstzahl von Kacheln (Entscheidung 6). Der Bau nennt Anzahl und Größe der Kacheln.
+- Es gibt keine Höchstzahl von Kacheln (Entscheidung 6). Der Bau nennt je Wanderung Anzahl und Größe der
+  Kacheln.
 - Mit `grundkarte = false` werden keine Kacheln geladen. Die Route liegt dann auf einer leichten Fläche.
 
 ## 5. Platz auf der Seite
@@ -436,7 +443,8 @@ dazugekommen.
 3. **Zoomstufen:** *Entschieden:* relativ zur Stufe, bei der die Route ganz ins Bild passt, je Ansicht. Siehe 7.1.
 4. **Position eines Halts:** *Entschieden:* entweder `km` oder `lat`/`lon`, nicht beides. Siehe 3.1.
 5. **Mehrere Spuren in einer GPX:** *Entschieden:* aneinanderhängen, Lücken auf der Karte nicht verbinden. Siehe 4.1.
-6. **Höchstzahl Kacheln:** Empfehlung: 3000 pro Wanderung, Warnung ab 2000, Größe im Bau anzeigen.
+6. **Höchstzahl Kacheln:** *Entschieden:* vorerst keine Höchstzahl. `init` schätzt Anzahl und Größe (3.3), der
+   Bau nennt die genauen Werte (4.5).
 7. **Datum einer Etappe:** `init` schreibt es aus der ersten GPX-Zeit, umgerechnet wie in 3.4. Fehlt die Zeit,
    steht kein Datum da. Beim Bauen wird nichts ergänzt. Empfehlung: ja.
 8. **Symbole:** feste Liste oder frei erweiterbar? Empfehlung: feste Liste, Fehler bei unbekanntem Symbol.
@@ -457,6 +465,10 @@ dazugekommen.
 15. **Felder der Bergfex-Angaben:** Dafür wird eine echte, von Bergfex exportierte GPX-Datei gebraucht.
     Daran wird festgelegt, welches Feld welche Kennzahl liefert. Ohne Beispieldatei lässt sich 4.3 nicht
     umsetzen. Der Nutzer legt die Datei später ins Repository. Bis dahin wird das Widget nicht umgesetzt.
+
+**Für später vorgemerkt:** Andere Wege, an die Kacheln zu kommen, als jede einzeln vom OpenStreetMap-Server
+zu laden. Grund: Dateigröße und die Nutzungsregeln von OpenStreetMap, die massenhaftes Herunterladen
+verbieten. Noch nicht beauftragt.
 
 Außerdem ist zu klären, ob SPEC 9.2 („Route aus GPX-Datei" für die Wegpunkte-Karte) mit diesem Widget erledigt
 ist.
