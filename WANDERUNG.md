@@ -344,7 +344,10 @@ Detailkarte, „Unterwegs"-Liste.
 
 - Ist ein Eintrag ausgewählt, steht der Griff an seiner Stelle. Einen eigenen Cursor gibt es dann nicht.
 - Wer den Griff zieht, hebt die Auswahl auf. Dann ist der freie Cursor zu sehen.
-- Was zu Beginn ausgewählt ist: Entscheidung 11.
+- **Startzustand:** Beim Öffnen und bei jedem Wechsel der Ansicht (Gesamt, Tag) ist der erste Eintrag der
+  Ansicht ausgewählt. Das ist der Start, wenn die erste Etappe ein `von` hat; sonst das erste Foto oder der
+  erste Halt. In der Ansicht eines späteren Tages ist es der erste Eintrag dieses Tages. Der Griff steht an
+  seiner Stelle, Ring und Detail zeigen ihn.
 
 ## 9. Detail
 
@@ -459,8 +462,7 @@ dazugekommen.
 10. **Gemeinsame Symbol-Tabelle:** *Entschieden:* Halte und Stationen nutzen dieselbe Tabelle `SYMBOLE` mit
     `punkt`, `start`, `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera`. Stationen bekommen damit die neuen Symbole
     dazu; ihr Standard bleibt `punkt` (G6).
-11. **Startzustand:** Was ist beim Öffnen ausgewählt? Empfehlung: nichts; der Griff steht am Anfang, das Detail
-    zeigt den ersten Eintrag.
+11. **Startzustand:** *Entschieden:* der erste Eintrag der Ansicht ist ausgewählt, meist der Start. Siehe 8.4.
 12. **Kachelquelle:** fest OpenStreetMap oder wie bei der Karte über `kacheln` in `[karte]`? Empfehlung: dieselbe
     Einstellung wie die Karte. So lässt sich auch ohne Internet gegen einen lokalen Kachelserver testen.
 13. **Name aus der GPX** (`trk/name`, `metadata/name`): wofür? Empfehlung: nicht verwenden, da Titel in der
