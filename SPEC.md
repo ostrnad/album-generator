@@ -236,6 +236,9 @@ Eigener Abschnitt pro Wanderung mit Karte, Höhenprofil, Regler, Fotos und Halte
 Vollständig beschrieben in [WANDERUNG.md](WANDERUNG.md). Vor der Umsetzung sind die Fragen in deren
 Abschnitt 14 zu klären.
 
+Mit der Umsetzung bekommt die Tabelle `SYMBOLE` die Symbole `tasse`, `berg`, `bett`, `flagge` und `kamera`.
+Sie stehen dann auch den Stationen (6.4) zur Verfügung.
+
 ### 9.6 Bilder zentral, Widgets verweisen (entschieden, nicht umgesetzt)
 
 Fotos werden einmal als `[[bild]]` definiert. Widgets verweisen über den Dateinamen darauf.
