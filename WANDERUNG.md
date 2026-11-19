@@ -107,7 +107,7 @@ Mit `lat`/`lon` sucht der Bau den nächsten Punkt der Route und nimmt dessen Eta
   derselben Stelle zweimal vorbeiführt.
 - Sind zwei Routenpunkte gleich nah, gilt der frühere.
 - Im Album steht danach nur Etappe und km, nicht die Koordinate.
-| `symbol` | siehe Entscheidung 8 | `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera` |
+| `symbol` | siehe Entscheidung 9 | einer der festen Namen: `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera` |
 
 `[[wanderung.foto]]`
 
@@ -451,7 +451,9 @@ dazugekommen.
    Bau nennt die genauen Werte (4.5).
 7. **Datum einer Etappe:** *Entschieden:* `init` schreibt es aus der GPX-Zeit, sonst aus dem ersten Foto mit
    Kommentar. Der Bau holt nichts nach. Siehe 3.3.
-8. **Symbole:** feste Liste oder frei erweiterbar? Empfehlung: feste Liste, Fehler bei unbekanntem Symbol.
+8. **Symbole:** *Entschieden:* feste Liste im Programm. Alle Symbole der Liste sind erlaubt, auch `kamera`.
+   Eigene Symbole über die `album.toml` (z. B. als SVG) gibt es nicht. Ein unbekannter Name ist ein Fehler, der
+   die verfügbaren Namen nennt. Neue Symbole kommen per Änderung am Programm dazu.
 9. **Symbol des Starts und Standard-Symbol eines Halts:** Die Liste hat kein Start-Symbol; der Entwurf zeigt
    dort versehentlich den Mond des Hell/Dunkel-Knopfs. Empfehlung: ein eigenes Symbol `start` für den Start;
    Halte ohne `symbol` bekommen einen einfachen Punkt wie die Stationen.
