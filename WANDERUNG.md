@@ -184,7 +184,13 @@ Bedarf zusammengelegt oder getrennt.
 
 - Gelesen werden Spuren (`trk`/`trkseg`/`trkpt`). Gibt es keine, dann Routen (`rte`/`rtept`).
 - Höhe (`ele`) und Zeit (`time`) sind optional. Der XML-Namensraum spielt keine Rolle.
-- Mehrere Spuren in einer Datei: siehe Entscheidung 5.
+- Eine GPX-Datei ist immer genau eine Tour, auch wenn sie aus mehreren Spuren (`trk`) oder Stücken
+  (`trkseg`) besteht. Das entsteht z. B., wenn die Aufzeichnung pausiert wurde.
+- Alle Stücke werden in der Reihenfolge der Datei zu einer Route aneinandergehängt.
+- Auf der Karte wird die Lücke zwischen zwei Stücken nicht mit einer Linie überbrückt. Sonst gibt es keinen
+  Hinweis auf die Unterbrechung; Kilometer und Höhenprofil laufen einfach weiter.
+- Die Strecke der eigenen Berechnung zählt die Lücke nicht mit.
+- Für `init` (3.4) ist der Start der erste Punkt des ersten Stücks, das Ziel der letzte Punkt des letzten.
 
 ### 4.2 Route vereinfachen
 
@@ -429,8 +435,7 @@ dazugekommen.
    an `[[wanderung]]` gibt es nicht; dort ist `gpx` ein unbekannter Schlüssel und damit ein Fehler (3.2).
 3. **Zoomstufen:** *Entschieden:* relativ zur Stufe, bei der die Route ganz ins Bild passt, je Ansicht. Siehe 7.1.
 4. **Position eines Halts:** *Entschieden:* entweder `km` oder `lat`/`lon`, nicht beides. Siehe 3.1.
-5. **Mehrere Spuren in einer GPX:** aneinanderhängen oder erkennen und anzeigen? Empfehlung: aneinanderhängen;
-   Lücken auf der Karte nicht verbinden.
+5. **Mehrere Spuren in einer GPX:** *Entschieden:* aneinanderhängen, Lücken auf der Karte nicht verbinden. Siehe 4.1.
 6. **Höchstzahl Kacheln:** Empfehlung: 3000 pro Wanderung, Warnung ab 2000, Größe im Bau anzeigen.
 7. **Datum einer Etappe:** `init` schreibt es aus der ersten GPX-Zeit, umgerechnet wie in 3.4. Fehlt die Zeit,
    steht kein Datum da. Beim Bauen wird nichts ergänzt. Empfehlung: ja.
