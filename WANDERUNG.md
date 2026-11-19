@@ -49,6 +49,12 @@ eigene_kennzahlen = false     # true = Kennzahlen selbst berechnen statt aus Ber
   text = "Brotzeit mit Blick ins Tal"
   symbol = "tasse"
 
+  [[wanderung.halt]]
+  lat = 47.4123               # statt km: Koordinate, z. B. aus OpenStreetMap
+  lon = 11.0456
+  titel = "Gipfel"
+  symbol = "berg"
+
   [[wanderung.foto]]          # Verweis auf ein [[bild]], schreibt init
   bild = "IMG_1234.jpg"       # Dateiname wie in [[bild]]
   etappe = 1
@@ -87,9 +93,20 @@ Die Fotos sind zentral als `[[bild]]` definiert. Die Wanderung verweist nur dara
 
 | Schlüssel | Standard | Regel |
 |---|---|---|
-| `etappe` | `1` | die Etappe muss existieren |
-| `km` | – | Pflicht; zwischen 0 und der Länge der Etappe |
+| `km` | – | Position entlang der Etappe; zwischen 0 und der Länge der Etappe |
+| `lat`, `lon` | – | Position als Koordinate, z. B. aus OpenStreetMap kopiert; nur beide zusammen |
+| `etappe` | `1` | die Etappe muss existieren; bei `lat`/`lon` optional, siehe unten |
 | `titel`, `text` | – | eines von beiden muss gefüllt sein |
+
+Ein Halt hat **entweder** `km` **oder** `lat`/`lon`, nie beides und nie keins.
+
+Mit `lat`/`lon` sucht der Bau den nächsten Punkt der Route und nimmt dessen Etappe und km:
+
+- Der Punkt muss höchstens 200 m von der Route entfernt sein (`HALT_ABSTAND_M`, Konstante), sonst Fehler.
+- Ohne `etappe` wird in allen Etappen gesucht. Mit `etappe` nur in dieser. Das hilft, wenn die Route an
+  derselben Stelle zweimal vorbeiführt.
+- Sind zwei Routenpunkte gleich nah, gilt der frühere.
+- Im Album steht danach nur Etappe und km, nicht die Koordinate.
 | `symbol` | siehe Entscheidung 8 | `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera` |
 
 `[[wanderung.foto]]`
@@ -111,6 +128,8 @@ Diese Fälle brechen den Bau mit einer klaren Meldung ab, die sagt, was zu tun i
   `[[wanderung.foto]]`
 - ungültige Zoomstufen, fehlende oder leere GPX-Datei, unbekanntes Symbol
 - `km` jenseits der Etappenlänge
+- Halt mit `km` und `lat`/`lon` zugleich, mit keinem von beiden oder nur mit `lat` oder nur `lon`
+- Halt mit `lat`/`lon` weiter als 200 m von der Route
 - `[[wanderung.foto]]` ohne `etappe` bei einer mehrtägigen Tour
 - Verweis auf ein Bild, das es nicht gibt, oder auf ein Panorama
 - dasselbe Bild zweimal in derselben Wanderung
@@ -409,7 +428,7 @@ dazugekommen.
 2. **Eintägige Touren:** *Entschieden:* immer mit genau einer `[[wanderung.etappe]]`. Eine Kurzform `gpx` direkt
    an `[[wanderung]]` gibt es nicht; dort ist `gpx` ein unbekannter Schlüssel und damit ein Fehler (3.2).
 3. **Zoomstufen:** *Entschieden:* relativ zur Stufe, bei der die Route ganz ins Bild passt, je Ansicht. Siehe 7.1.
-4. **Position eines Halts:** nur `km` oder auch `lat`/`lon`? Empfehlung: zuerst nur `km`.
+4. **Position eines Halts:** *Entschieden:* entweder `km` oder `lat`/`lon`, nicht beides. Siehe 3.1.
 5. **Mehrere Spuren in einer GPX:** aneinanderhängen oder erkennen und anzeigen? Empfehlung: aneinanderhängen;
    Lücken auf der Karte nicht verbinden.
 6. **Höchstzahl Kacheln:** Empfehlung: 3000 pro Wanderung, Warnung ab 2000, Größe im Bau anzeigen.
