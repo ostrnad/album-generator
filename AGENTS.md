@@ -2,7 +2,8 @@
 
 Dieses Repository enthält ein einzelnes Python-Tool, `fotoalbum.py`. Was es tut und tun soll, steht in
 [SPEC.md](SPEC.md); die Benutzung in [README.md](README.md); das gemeinsame Grunddesign, auf dem alle Teile
-der Seite aufbauen, in [DESIGN.md](DESIGN.md). Lies SPEC.md, bevor du etwas änderst, und DESIGN.md, bevor du
+der Seite aufbauen, in [DESIGN.md](DESIGN.md). Die geplante Architektur aus Rumpfseite und Web Components steht in
+[ARCHITEKTUR.md](ARCHITEKTUR.md). Lies SPEC.md, bevor du etwas änderst, und DESIGN.md, bevor du
 etwas am Aussehen änderst.
 
 ## Wichtig zuerst
@@ -13,6 +14,7 @@ etwas am Aussehen änderst.
 - **Offene Entscheidungen nicht selbst treffen.** SPEC.md Abschnitt 9.1 listet fünf Fragen zum verlinkten
   Modus, die der Nutzer beantworten muss. Erst fragen, dann umsetzen.
   Ebenso WANDERUNG.md Abschnitt 14 für das Wanderungs-Widget.
+  Ebenso ARCHITEKTUR.md Abschnitt 8 für den Umbau auf Web Components.
 - **Wanderungs-Widget nicht umsetzen, solange keine echte Bergfex-GPX-Datei im Repository liegt**
   (WANDERUNG.md Entscheidung 15). Wird die Umsetzung verlangt, ablehnen und den Nutzer darauf hinweisen, dass
   die Datei noch fehlt. An der Spec weiterarbeiten ist erlaubt.
