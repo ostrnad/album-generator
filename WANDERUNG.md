@@ -33,6 +33,7 @@ titel = "Über den Grat zur Alpe"
 zoom_stufen = [0, 2, 3]       # optional, siehe Entscheidung 3
 grundkarte = true             # false = nur die Route, ohne Kartenkacheln
 kachel_qualitaet = 70         # 30–95
+eigene_kennzahlen = false     # true = Kennzahlen selbst berechnen statt aus Bergfex
 
   [[wanderung.etappe]]        # eine pro Tag
   gpx = "tag1.gpx"
@@ -71,6 +72,7 @@ Die Fotos sind zentral als `[[bild]]` definiert. Die Wanderung verweist nur dara
 | `zoom_stufen` | `[0, 2, 3]` | genau drei ganze Zahlen, aufsteigend (Bedeutung: Entscheidung 3) |
 | `grundkarte` | `true` | |
 | `kachel_qualitaet` | `70` | 30–95 |
+| `eigene_kennzahlen` | `false` | `true` = Kennzahlen selbst berechnen, auch wenn Bergfex-Werte da sind (4.3) |
 
 `[[wanderung.etappe]]` – mindestens eine pro Wanderung
 
@@ -173,7 +175,16 @@ Bedarf zusammengelegt oder getrennt.
 
 ### 4.3 Kennzahlen
 
-Je Etappe (Berechnung: Entscheidung 1):
+Bergfex ist das übliche Werkzeug zum Aufzeichnen. Die Kennzahlen sollen mit denen in der Bergfex-Webanwendung
+übereinstimmen. Deshalb gilt je Etappe:
+
+- **Standard:** Strecke, Aufstieg, Abstieg, höchster Punkt und Dauer kommen aus den Bergfex-Angaben in der
+  GPX-Datei (`TrackStatsExtension`). Sie werden unverändert übernommen.
+- **Fehlen die Bergfex-Angaben** oder einzelne Werte darin, wird der fehlende Wert selbst berechnet (unten).
+  Der Bau nennt die betroffenen Etappen.
+- **`eigene_kennzahlen = true`:** Alle Werte werden selbst berechnet, auch wenn Bergfex-Angaben da sind.
+
+Eigene Berechnung:
 
 - **Strecke:** Summe der Abstände zwischen den ursprünglichen GPX-Punkten.
 - **Aufstieg und Abstieg:** Höhe vorher auf etwa 40 m Strecke geglättet. Kleine Schwankungen unter 3 m
@@ -182,7 +193,13 @@ Je Etappe (Berechnung: Entscheidung 1):
 - **Dauer:** letzte minus erste Zeit. Ohne Zeitangaben gibt es keine Dauer.
 
 Für die ganze Tour: Strecke, Aufstieg und Abstieg zusammengezählt, höchster Punkt ist das Maximum, Dauer ist
-die Summe der Etappen (Nächte zählen nicht).
+die Summe der Etappen (Nächte zählen nicht). Das gilt für beide Quellen.
+
+Höhenprofil, Höhe am Cursor und Steigung kommen immer aus den Punkten der GPX-Datei. Sie können daher leicht
+von den Bergfex-Kennzahlen abweichen, z. B. kann der höchste Punkt im Profil etwas anders sein.
+
+Welche Felder die Bergfex-Angaben genau enthalten (Namen, Einheiten, ob die Dauer Pausen enthält), ist noch
+an einer echten Bergfex-GPX-Datei festzustellen (Entscheidung 15).
 
 ### 4.4 Fotos der Tour
 
@@ -380,12 +397,10 @@ Im Dunkeln wird nur das Kartenbild abgedunkelt.
 
 ## 14. Offene Entscheidungen
 
-Vor der Umsetzung mit dem Nutzer zu klären. Fragen 1–8 stammen vom Nutzer, 9–14 sind beim Ausarbeiten
+Vor der Umsetzung mit dem Nutzer zu klären. Fragen 1–8 stammen vom Nutzer, 9–15 sind beim Ausarbeiten
 dazugekommen.
 
-1. **Kennzahlen:** selbst berechnen oder aus der GPX übernehmen (Bergfex, `TrackStatsExtension`)?
-   Empfehlung: selbst berechnen. Bergfex-Werte nur, wenn vorhanden und per Schalter gewünscht. Sonst weichen
-   die Werte je nach Quelle ab.
+1. **Kennzahlen:** *Entschieden:* aus Bergfex, Schalter `eigene_kennzahlen` (Standard aus), siehe 4.3.
 2. **Eintägige Touren:** immer mit einer Etappe oder zusätzlich `gpx = "…"` direkt an `[[wanderung]]`?
    Empfehlung: nur Etappen. Das ist ein Format, und `init` kann die Blöcke schreiben.
 3. **Zoomstufen:** feste Kartenstufen (`[12, 14, 15]`) oder relativ zur Stufe, bei der die Route ins Bild
@@ -412,6 +427,10 @@ dazugekommen.
 
 14. **GPX-Dateien zu Wanderungen zusammenfassen:** *Entschieden*, siehe Abschnitt 3.4.
 
+15. **Felder der Bergfex-Angaben:** Dafür wird eine echte, von Bergfex exportierte GPX-Datei gebraucht.
+    Daran wird festgelegt, welches Feld welche Kennzahl liefert. Ohne Beispieldatei lässt sich 4.3 nicht
+    umsetzen.
+
 Außerdem ist zu klären, ob SPEC 9.2 („Route aus GPX-Datei" für die Wegpunkte-Karte) mit diesem Widget erledigt
 ist.
 
@@ -419,7 +438,7 @@ ist.
 
 Zusätzlich zu den Prüfungen in AGENTS.md:
 
-- Testdaten: künstliche GPX-Dateien mit und ohne Höhe und Zeit, eine mit zwei Spuren, eine nur mit `rte`.
+- Testdaten: eine echte Bergfex-GPX-Datei; künstliche GPX-Dateien mit und ohne Höhe und Zeit, eine mit zwei Spuren, eine nur mit `rte`.
   Fotos mit GPS nahe der Route und weit weg.
 - Kacheln von einem lokalen Testserver, nicht von OpenStreetMap.
 - Eintägig und mehrtägig, jeweils Desktop und Handy, hell und dunkel, und ohne JavaScript.
