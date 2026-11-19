@@ -34,6 +34,8 @@ zoom_stufen = [0, 2, 3]       # relativ zur Stufe, bei der die Route ganz ins Bi
 grundkarte = true             # false = nur die Route, ohne Kartenkacheln
 kachel_qualitaet = 70         # 30–95
 eigene_kennzahlen = false     # true = Kennzahlen selbst berechnen statt aus Bergfex
+kacheln = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"   # Kachelserver für den Bau
+quelle = "© OpenStreetMap-Mitwirkende"                       # Quellenangabe auf der Karte
 
   [[wanderung.etappe]]        # eine pro Tag
   gpx = "tag1.gpx"
@@ -79,6 +81,8 @@ Die Fotos sind zentral als `[[bild]]` definiert. Die Wanderung verweist nur dara
 | `grundkarte` | `true` | |
 | `kachel_qualitaet` | `70` | 30–95 |
 | `eigene_kennzahlen` | `false` | `true` = Kennzahlen selbst berechnen, auch wenn Bergfex-Werte da sind (4.3) |
+| `kacheln` | OpenStreetMap | Adresse des Kachelservers mit `{z}`, `{x}`, `{y}` (4.5) |
+| `quelle` | `"© OpenStreetMap-Mitwirkende"` | Quellenangabe auf der Karte |
 
 `[[wanderung.etappe]]` – mindestens eine pro Wanderung
 
@@ -245,11 +249,16 @@ an einer echten Bergfex-GPX-Datei festzustellen (Entscheidung 15).
 
 ### 4.5 Kartenkacheln
 
-- Kacheln kommen von OpenStreetMap. Die Quellenangabe steht sichtbar auf der Karte.
+- Der Bau lädt die Kacheln vom Server in `kacheln` der jeweiligen Wanderung, Standard OpenStreetMap. Die
+  Quellenangabe `quelle` steht sichtbar auf der Karte.
+- Jede Wanderung hat ihre eigene Einstellung. Das Widget hängt nicht von `[karte]` ab und funktioniert auch,
+  wenn das Album keine Karte hat. Eine Einstellung für die ganze Datei gibt es bewusst nicht.
+- Die fertige Seite lädt keine Kacheln nach; alle stecken in der HTML-Datei (G1).
 - Je Zoomstufe werden nur die Kacheln geladen, die die Route berührt, plus ein Ring von Kacheln drumherum.
 - Jede Kachel steckt nur einmal pro Wanderung in der Datei. Sie wird als JPEG mit `kachel_qualitaet`
   gespeichert.
-- Zwischenspeicher wie bei der Karte: `~/.cache/fotoalbum/kacheln`, gleicher Abruf wie in SPEC 6.6.
+- Zwischenspeicher und Abruf wie bei der Karte (SPEC 6.6): `~/.cache/fotoalbum/kacheln`, eigener
+  User-Agent, zwei Verbindungen.
 - Es gibt keine Höchstzahl von Kacheln (Entscheidung 6). Der Bau nennt je Wanderung Anzahl und Größe der
   Kacheln.
 - Mit `grundkarte = false` werden keine Kacheln geladen. Die Route liegt dann auf einer leichten Fläche.
@@ -463,8 +472,8 @@ dazugekommen.
     `punkt`, `start`, `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera`. Stationen bekommen damit die neuen Symbole
     dazu; ihr Standard bleibt `punkt` (G6).
 11. **Startzustand:** *Entschieden:* der erste Eintrag der Ansicht ist ausgewählt, meist der Start. Siehe 8.4.
-12. **Kachelquelle:** fest OpenStreetMap oder wie bei der Karte über `kacheln` in `[karte]`? Empfehlung: dieselbe
-    Einstellung wie die Karte. So lässt sich auch ohne Internet gegen einen lokalen Kachelserver testen.
+12. **Kachelquelle:** *Entschieden:* je Wanderung eigene Schlüssel `kacheln` und `quelle`, unabhängig von
+    `[karte]`. Siehe 4.5.
 13. **Name aus der GPX** (`trk/name`, `metadata/name`): wofür? Empfehlung: nicht verwenden, da Titel in der
     `album.toml` stehen.
 
@@ -476,7 +485,8 @@ dazugekommen.
 
 **Für später vorgemerkt:** Andere Wege, an die Kacheln zu kommen, als jede einzeln vom OpenStreetMap-Server
 zu laden. Grund: Dateigröße und die Nutzungsregeln von OpenStreetMap, die massenhaftes Herunterladen
-verbieten. Noch nicht beauftragt.
+verbieten. Dazu gehört auch die Möglichkeit, die Kacheln in einem Verzeichnis neben der HTML-Datei abzulegen
+statt sie einzubetten (vgl. SPEC 9.1). Noch nicht beauftragt.
 
 Außerdem ist zu klären, ob SPEC 9.2 („Route aus GPX-Datei" für die Wegpunkte-Karte) mit diesem Widget erledigt
 ist.
@@ -487,7 +497,7 @@ Zusätzlich zu den Prüfungen in AGENTS.md:
 
 - Testdaten: eine echte Bergfex-GPX-Datei; künstliche GPX-Dateien mit und ohne Höhe und Zeit, eine mit zwei Spuren, eine nur mit `rte`.
   Fotos mit GPS nahe der Route und weit weg.
-- Kacheln von einem lokalen Testserver, nicht von OpenStreetMap.
+- Kacheln von einem lokalen Testserver (per `kacheln` an der Wanderung), nicht von OpenStreetMap.
 - Eintägig und mehrtägig, jeweils Desktop und Handy, hell und dunkel, und ohne JavaScript.
 - Regler, Blättern, Tag-Schalter, Zoom per Knopf, Mausrad und zwei Fingern, Foto-Fenster, Großansicht aus der
   Tour.
