@@ -107,7 +107,7 @@ Mit `lat`/`lon` sucht der Bau den nächsten Punkt der Route und nimmt dessen Eta
   derselben Stelle zweimal vorbeiführt.
 - Sind zwei Routenpunkte gleich nah, gilt der frühere.
 - Im Album steht danach nur Etappe und km, nicht die Koordinate.
-| `symbol` | siehe Entscheidung 9 | einer der festen Namen: `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera` |
+| `symbol` | `punkt` | ein Name aus der gemeinsamen Tabelle `SYMBOLE` (Entscheidung 10) |
 
 `[[wanderung.foto]]`
 
@@ -451,14 +451,16 @@ dazugekommen.
    Bau nennt die genauen Werte (4.5).
 7. **Datum einer Etappe:** *Entschieden:* `init` schreibt es aus der GPX-Zeit, sonst aus dem ersten Foto mit
    Kommentar. Der Bau holt nichts nach. Siehe 3.3.
-8. **Symbole:** *Entschieden:* feste Liste im Programm. Alle Symbole der Liste sind erlaubt, auch `kamera`.
+8. **Symbole:** *Entschieden:* feste Liste im Programm (`SYMBOLE`). Alle Symbole der Liste sind erlaubt, auch `kamera`.
    Eigene Symbole über die `album.toml` (z. B. als SVG) gibt es nicht. Ein unbekannter Name ist ein Fehler, der
    die verfügbaren Namen nennt. Neue Symbole kommen per Änderung am Programm dazu.
-9. **Symbol des Starts und Standard-Symbol eines Halts:** Die Liste hat kein Start-Symbol; der Entwurf zeigt
-   dort versehentlich den Mond des Hell/Dunkel-Knopfs. Empfehlung: ein eigenes Symbol `start` für den Start;
-   Halte ohne `symbol` bekommen einen einfachen Punkt wie die Stationen.
-10. **Gemeinsame Symbol-Tabelle:** Sollen Halte und Stationen dieselbe Tabelle `SYMBOLE` nutzen? Empfehlung: ja.
-    Dann können auch Stationen die neuen Symbole verwenden.
+9. **Symbol des Starts und Standard-Symbol eines Halts:**
+   - *Entschieden:* Ein Halt ohne `symbol` bekommt `punkt`, wie eine Station.
+   - *Offen:* Symbol des Starts. Die Liste hat keins; der Entwurf zeigt dort versehentlich den Mond des
+     Hell/Dunkel-Knopfs. Empfehlung: ein eigenes Symbol `start`.
+10. **Gemeinsame Symbol-Tabelle:** *Entschieden:* Halte und Stationen nutzen dieselbe Tabelle `SYMBOLE` mit
+    `punkt`, `haus`, `tasse`, `berg`, `bett`, `flagge`, `kamera`. Stationen bekommen damit die neuen Symbole
+    dazu; ihr Standard bleibt `punkt` (G6).
 11. **Startzustand:** Was ist beim Öffnen ausgewählt? Empfehlung: nichts; der Griff steht am Anfang, das Detail
     zeigt den ersten Eintrag.
 12. **Kachelquelle:** fest OpenStreetMap oder wie bei der Karte über `kacheln` in `[karte]`? Empfehlung: dieselbe
