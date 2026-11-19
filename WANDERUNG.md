@@ -86,7 +86,7 @@ Die Fotos sind zentral als `[[bild]]` definiert. Die Wanderung verweist nur dara
 |---|---|---|
 | `gpx` | – | Pflicht; Pfad relativ zur `album.toml`; die Datei muss existieren und Punkte enthalten |
 | `titel` | `"Tag n"` | |
-| `datum` | siehe Entscheidung 7 | Datum wie sonst in der `album.toml` |
+| `datum` | kein Datum | Datum wie sonst in der `album.toml`; `init` schreibt es (3.3) |
 | `von`, `bis` | – | optional |
 
 `[[wanderung.halt]]`
@@ -144,8 +144,12 @@ bevor die Seite entsteht.
 - `init` sucht `.gpx`-Dateien im Ordner (nicht in Unterordnern, ohne versteckte Dateien).
 - Wie die Dateien zu Wanderungen zusammengefasst werden: Abschnitt 3.4.
 - Jede GPX-Datei wird eine Etappe. Reihenfolge: nach der ersten Zeit in der Datei, sonst nach Dateinamen.
-- Je Etappe schreibt `init` `gpx`, `titel = "Tag n"` und `datum` (Entscheidung 7). `von` und `bis` stehen
-  auskommentiert da.
+- Je Etappe schreibt `init` `gpx`, `titel = "Tag n"` und `datum`. `von` und `bis` stehen auskommentiert da.
+- `datum` kommt aus der ersten Zeitangabe der GPX-Datei, umgerechnet wie in 3.4. Hat die Datei keine
+  Zeitangaben, nimmt `init` das Aufnahmedatum des ersten Fotos der Etappe (nach km) und schreibt einen
+  Kommentar dazu, z. B. `datum = 2026-08-04   # aus Foto IMG_1234.jpg, nicht aus der GPX-Datei`. Gibt es
+  auch kein Foto mit Datum, fehlt die Zeile.
+- Beim Bauen wird ein fehlendes Datum nicht nachgeholt. Fehlt es, entfällt es an allen Stellen im Widget.
 - Jedes Foto mit GPS kommt zum nächsten Routenpunkt aller Etappen, wenn er höchstens 200 m entfernt ist
   (`FOTO_ABSTAND_M`, eine Konstante wie `WEGPUNKT_RADIUS_KM`). Dafür schreibt `init` einen
   `[[wanderung.foto]]`-Block mit `bild`, `etappe` und `km` (auf 0,1 km gerundet).
@@ -445,8 +449,8 @@ dazugekommen.
 5. **Mehrere Spuren in einer GPX:** *Entschieden:* aneinanderhängen, Lücken auf der Karte nicht verbinden. Siehe 4.1.
 6. **Höchstzahl Kacheln:** *Entschieden:* vorerst keine Höchstzahl. `init` schätzt Anzahl und Größe (3.3), der
    Bau nennt die genauen Werte (4.5).
-7. **Datum einer Etappe:** `init` schreibt es aus der ersten GPX-Zeit, umgerechnet wie in 3.4. Fehlt die Zeit,
-   steht kein Datum da. Beim Bauen wird nichts ergänzt. Empfehlung: ja.
+7. **Datum einer Etappe:** *Entschieden:* `init` schreibt es aus der GPX-Zeit, sonst aus dem ersten Foto mit
+   Kommentar. Der Bau holt nichts nach. Siehe 3.3.
 8. **Symbole:** feste Liste oder frei erweiterbar? Empfehlung: feste Liste, Fehler bei unbekanntem Symbol.
 9. **Symbol des Starts und Standard-Symbol eines Halts:** Die Liste hat kein Start-Symbol; der Entwurf zeigt
    dort versehentlich den Mond des Hell/Dunkel-Knopfs. Empfehlung: ein eigenes Symbol `start` für den Start;
