@@ -30,7 +30,7 @@ die Fotos der Tour und die Halte unterwegs. Man kann die Tour mit einem Regler a
 ```toml
 [[wanderung]]
 titel = "Über den Grat zur Alpe"
-zoom_stufen = [0, 2, 3]       # optional, siehe Entscheidung 3
+zoom_stufen = [0, 2, 3]       # relativ zur Stufe, bei der die Route ganz ins Bild passt
 grundkarte = true             # false = nur die Route, ohne Kartenkacheln
 kachel_qualitaet = 70         # 30–95
 eigene_kennzahlen = false     # true = Kennzahlen selbst berechnen statt aus Bergfex
@@ -69,7 +69,7 @@ Die Fotos sind zentral als `[[bild]]` definiert. Die Wanderung verweist nur dara
 | Schlüssel | Standard | Regel |
 |---|---|---|
 | `titel` | – | Pflicht |
-| `zoom_stufen` | `[0, 2, 3]` | genau drei ganze Zahlen, aufsteigend (Bedeutung: Entscheidung 3) |
+| `zoom_stufen` | `[0, 2, 3]` | genau drei ganze Zahlen ab 0, aufsteigend; relativ, siehe 7.1 |
 | `grundkarte` | `true` | |
 | `kachel_qualitaet` | `70` | 30–95 |
 | `eigene_kennzahlen` | `false` | `true` = Kennzahlen selbst berechnen, auch wenn Bergfex-Werte da sind (4.3) |
@@ -254,6 +254,11 @@ Detailkarte, „Unterwegs"-Liste.
 ### 7.1 Bedienung
 
 - Drei feste Zoomstufen. Zoomen springt von Stufe zu Stufe.
+- Die Stufen sind relativ. `0` ist die größte Kartenstufe, bei der die ganze Route der Ansicht ins Bild passt,
+  am Desktop wie am Handy. `2` heißt: zwei Stufen näher heran. So passen eine lange Gesamttour und eine kurze
+  Etappe gleich gut.
+- Jede Ansicht (Gesamt, jeder Tag) hat ihre eigene Stufe `0`. Dadurch werden mehr Kacheln gebraucht (4.5).
+- Keine Stufe geht über die größte Stufe der Kachelquelle hinaus (bei OpenStreetMap 18, wie bei der Karte).
 - Knöpfe: Plus, Minus, „Alles zeigen". Es sind schwebende Knöpfe (44 px) oben rechts auf der Karte.
 - Maus: Ziehen verschiebt, Doppelklick zoomt hinein, Strg/⌘ + Mausrad zoomt.
 - Touch: zwei Finger verschieben und zoomen. Ein Finger scrollt die Seite.
@@ -403,9 +408,7 @@ dazugekommen.
 1. **Kennzahlen:** *Entschieden:* aus Bergfex, Schalter `eigene_kennzahlen` (Standard aus), siehe 4.3.
 2. **Eintägige Touren:** immer mit einer Etappe oder zusätzlich `gpx = "…"` direkt an `[[wanderung]]`?
    Empfehlung: nur Etappen. Das ist ein Format, und `init` kann die Blöcke schreiben.
-3. **Zoomstufen:** feste Kartenstufen (`[12, 14, 15]`) oder relativ zur Stufe, bei der die Route ins Bild
-   passt (`[0, 2, 3]`)? Empfehlung: relativ. Dann passen eine 28-km-Tour und eine 5-km-Etappe gleich gut. Die
-   Stufen gelten je Ansicht (Gesamt, Tag).
+3. **Zoomstufen:** *Entschieden:* relativ zur Stufe, bei der die Route ganz ins Bild passt, je Ansicht. Siehe 7.1.
 4. **Position eines Halts:** nur `km` oder auch `lat`/`lon`? Empfehlung: zuerst nur `km`.
 5. **Mehrere Spuren in einer GPX:** aneinanderhängen oder erkennen und anzeigen? Empfehlung: aneinanderhängen;
    Lücken auf der Karte nicht verbinden.
