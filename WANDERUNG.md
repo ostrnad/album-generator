@@ -121,7 +121,7 @@ Die Zuordnung der Fotos passiert in `init`, nicht beim Bauen. So sieht und ände
 bevor die Seite entsteht.
 
 - `init` sucht `.gpx`-Dateien im Ordner (nicht in Unterordnern, ohne versteckte Dateien).
-- Wie die Dateien zu Wanderungen zusammengefasst werden: Entscheidung 14.
+- Wie die Dateien zu Wanderungen zusammengefasst werden: Abschnitt 3.4.
 - Jede GPX-Datei wird eine Etappe. Reihenfolge: nach der ersten Zeit in der Datei, sonst nach Dateinamen.
 - Je Etappe schreibt `init` `gpx`, `titel = "Tag n"` und `datum` (Entscheidung 7). `von` und `bis` stehen
   auskommentiert da.
@@ -135,6 +135,27 @@ bevor die Seite entsteht.
 
 Danach kann man Blöcke löschen, ändern oder von Hand ergänzen. Ein erneutes `init --force` überschreibt die
 ganze Datei, wie bisher.
+
+### 3.4 GPX-Dateien zu Wanderungen zusammenfassen
+
+Das ist eine Automatik in `init`. Sie darf sich irren; das Ergebnis wird ohnehin von Hand geprüft und bei
+Bedarf zusammengelegt oder getrennt.
+
+- **Tag einer Datei:** der Kalendertag ihrer ersten Zeit, in geschätzter Ortszeit. Die Ortszeit ist UTC plus
+  eine Stunde je 15 Grad östlicher Länge des ersten Punkts (westlich entsprechend minus). Fürs Datum reicht
+  das, weil keine Wanderung um Mitternacht beginnt. Keine weitere Abhängigkeit.
+- **Reihenfolge:** Die Dateien werden nach ihrer ersten Zeit sortiert. Jede wird mit der direkt davor
+  verglichen.
+- **Zusammenfassen:** Eine Datei wird die nächste Etappe der vorigen Wanderung, wenn
+  - ihr Tag direkt auf den Tag der vorigen Datei folgt und
+  - ihr Start höchstens 250 m vom Ziel der vorigen Datei entfernt liegt (`ETAPPEN_ABSTAND_M`, Konstante).
+- **Ausnahme:** Sind beide Dateien Rundtouren, werden sie nicht zusammengefasst. Rundtour heißt: Start und
+  Ziel liegen höchstens 250 m auseinander. Sonst würden Tagestouren ab derselben Unterkunft zu einer Tour.
+  Eine Runde ab der Hütte mitten in einer Hüttentour stört nicht, weil der Tag davor und der Tag danach
+  keine Rundtouren sind.
+- Sonst beginnt mit der Datei eine neue Wanderung.
+- Dateien ohne Zeitangaben werden je eine eigene Wanderung.
+- Zwei Dateien am selben Tag werden nicht zusammengefasst. Eine Etappe ist genau eine GPX-Datei.
 
 ## 4. Aufbereitung beim Bauen
 
@@ -374,8 +395,8 @@ dazugekommen.
 5. **Mehrere Spuren in einer GPX:** aneinanderhängen oder erkennen und anzeigen? Empfehlung: aneinanderhängen;
    Lücken auf der Karte nicht verbinden.
 6. **Höchstzahl Kacheln:** Empfehlung: 3000 pro Wanderung, Warnung ab 2000, Größe im Bau anzeigen.
-7. **Datum einer Etappe:** `init` schreibt es aus der ersten GPX-Zeit. Fehlt die Zeit, steht kein Datum da.
-   Beim Bauen wird nichts ergänzt. Empfehlung: ja.
+7. **Datum einer Etappe:** `init` schreibt es aus der ersten GPX-Zeit, umgerechnet wie in 3.4. Fehlt die Zeit,
+   steht kein Datum da. Beim Bauen wird nichts ergänzt. Empfehlung: ja.
 8. **Symbole:** feste Liste oder frei erweiterbar? Empfehlung: feste Liste, Fehler bei unbekanntem Symbol.
 9. **Symbol des Starts und Standard-Symbol eines Halts:** Die Liste hat kein Start-Symbol; der Entwurf zeigt
    dort versehentlich den Mond des Hell/Dunkel-Knopfs. Empfehlung: ein eigenes Symbol `start` für den Start;
@@ -389,10 +410,7 @@ dazugekommen.
 13. **Name aus der GPX** (`trk/name`, `metadata/name`): wofür? Empfehlung: nicht verwenden, da Titel in der
     `album.toml` stehen.
 
-14. **GPX-Dateien zu Wanderungen zusammenfassen** (in `init`): Empfehlung: Dateien, deren erste Zeiten auf
-    aufeinanderfolgende Tage fallen, werden eine mehrtägige Wanderung. Alle anderen werden je eine eigene
-    Wanderung. Dateien ohne Zeit werden je eine eigene Wanderung. Zusammenlegen oder Trennen geht danach von
-    Hand.
+14. **GPX-Dateien zu Wanderungen zusammenfassen:** *Entschieden*, siehe Abschnitt 3.4.
 
 Außerdem ist zu klären, ob SPEC 9.2 („Route aus GPX-Datei" für die Wegpunkte-Karte) mit diesem Widget erledigt
 ist.
