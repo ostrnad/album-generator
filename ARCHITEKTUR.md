@@ -197,15 +197,15 @@ Bleibt es dabei, dass Python rechnet und die Components nur darstellen (Abschnit
   Testseiten und ersetzt nur den Ordner seines Branches; beim Löschen eines Branches wird der Ordner entfernt;
   eine Startseite listet Branches und Widgets. Die Kacheln liefert ein Testserver im Workflow.
 - Die Testseiten sind öffentlich (das Repository ist öffentlich). Mit synthetischen Daten kein Problem; die
-  echte Bergfex-GPX-Datei für die Wanderung wäre dort als Karte zu sehen.
+  echte Bergfex-GPX-Datei (`tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx`) wäre dort als Karte zu sehen.
 
 ### 8.8 Umbau und Reihenfolge
 
 - Soll der Umbau das Aussehen der bestehenden Teile unverändert lassen? Dann dient die heutige Seite als
   Vergleich.
-- Die Wanderung darf erst mit der echten Bergfex-GPX-Datei umgesetzt werden (WANDERUNG Entscheidung 15).
-  Vorschlag: die Architektur an einem bestehenden Widget einführen, etwa am Panorama, das schon heute nur mit
-  JavaScript voll läuft.
+- Die Bergfex-Beispieldatei liegt vor (WANDERUNG Entscheidung 15). Offen ist, ob die Architektur zuerst an
+  einem bestehenden Widget eingeführt wird, etwa am Panorama, das schon heute nur mit JavaScript voll läuft,
+  oder gleich an der Wanderung.
 
 ## 9. Bei der Umsetzung anzupassen
 
