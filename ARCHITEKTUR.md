@@ -30,9 +30,13 @@ Der Bau setzt beides zu **einer** HTML-Datei zusammen, in der alles eingebettet 
   isoliert auf einer beliebigen anderen Website einbinden kann.
 - **G2 entfällt.** Die Seite muss ohne JavaScript nicht mehr vollständig nutzbar sein. An die Stelle von G2
   tritt:
-  - **G2′ – JavaScript-freie Darstellung je Widget:** Jede Web Component legt fest, was ohne JavaScript zu
-    sehen ist, und hält das so vollständig wie möglich. Was ohne JavaScript nicht geht, entfällt dort.
-    Wie bisher bei der Wanderung (WANDERUNG 13.1) steht das in der Beschreibung des Widgets.
+  - **G2′ – Grundansicht ohne JavaScript:** Ohne JavaScript zeigt die Seite nur
+    - Kopf und Fuß (Titel, Unterzeile, Datum, „N Fotos"),
+    - das Fotoraster mit allen Fotos samt Unterschriften und
+    - eine einfache Großansicht: Ein Klick auf ein Foto öffnet es groß (Abschnitt 3.1).
+
+    Alle anderen Widgets (Stationen, Karte, Panorama-Widget, Wanderung) zeigen ohne JavaScript nichts.
+    Hell/Dunkel folgt ohne JavaScript der Systemeinstellung.
 - **G6 gilt weiter:** Der Umbau ändert nichts an der `album.toml`. Jede bisher gültige Konfiguration baut
   weiter und zeigt dieselben Inhalte.
 
@@ -43,32 +47,54 @@ album.toml ──► fotoalbum.py ───────────────�
                │ prüft die Konfiguration                    ┌──────────────────────────────┐
                │ verarbeitet Bilder, Kacheln, GPX ...       │ Rumpf: Kopf, Fuß, Hell/Dunkel │
                │ erzeugt die Daten als JSON          ──────►│ Daten (JSON)                  │
-               │ erzeugt je Widget die                ──────►│ <album-…> mit JS-freier       │
-               │   JavaScript-freie Darstellung              │   Darstellung darin           │
+               │ erzeugt Kopf, Fuß, Raster und        ──────►│ Grundansicht als HTML         │
+               │   Großansicht als fertiges HTML             │   (Kopf, Fuß, Raster, Bilder) │
                └ wählt die benutzten Web Components  ──────►│ Code der benutzten Components │
                                                             └──────────────────────────────┘
 ```
 
-Folgerung aus G2′: Ohne JavaScript läuft keine Web Component. Die JavaScript-freie Darstellung muss deshalb
-der Bau als fertiges HTML in das Element schreiben. Läuft JavaScript, übernimmt die Component und rendert ihre
-volle Darstellung aus dem JSON.
+Folgerung aus G2′: Ohne JavaScript läuft keine Web Component. Die Grundansicht (Kopf, Fuß, Raster,
+Großansicht) muss deshalb der Bau als fertiges HTML schreiben. Läuft JavaScript, übernehmen die Components;
+alle übrigen Widgets rendern nur aus dem JSON und brauchen keine Darstellung aus Python.
+
+### 3.1 Großansicht ohne JavaScript
+
+Das geht mit reinem HTML/CSS über die CSS-Pseudoklasse `:target`:
+
+- Jedes Foto im Raster ist ein Link auf `#gross-N`. Zu jedem Foto gibt es ein Element `id="gross-N"`, das
+  normal unsichtbar ist und mit `:target` bildschirmfüllend erscheint (`position: fixed`).
+- Darin: das große Bild, ein Schließen-Link zurück auf das Foto im Raster (`#foto-N`) und Blätter-Links auf
+  `#gross-N-1` und `#gross-N+1`.
+- Das große Bild steht als `<img loading="lazy">` mit Data-URL darin. Unsichtbare Lazy-Bilder lädt und
+  dekodiert der Browser erst beim Öffnen. Die Großansicht-Component mit JavaScript nimmt das Bild von dort;
+  es wird also nicht zusätzlich im JSON eingebettet (siehe 8.2).
+
+Ausprobiert mit einem Prototyp in Chrome (Playwright, JavaScript abgeschaltet): öffnen, blättern und
+schließen funktionieren, die Seite springt beim Öffnen nicht. Nicht geprüft: Safari, Firefox, echte
+Mobilgeräte, Speicherbedarf mit 36 großen Bildern.
+
+Grenzen gegenüber der Großansicht mit JavaScript:
+
+- Kein Wischen, keine Pfeiltasten, kein Esc, kein Einpassen per Skript (nur `max-width`/`max-height`).
+- Jedes Öffnen und Blättern ist ein Eintrag im Verlauf: Die Zurück-Taste blättert zurück, statt zu schließen.
+- Beim Schließen springt das Foto an den oberen Fensterrand (per `scroll-margin` milderbar).
+- Kein Knopf „Speichern"; ein eigener Download-Link würde das große Bild ein zweites Mal einbetten. Speichern
+  geht über das Kontextmenü des Browsers.
 
 ## 4. Die Widgets
 
 Bisherige Teile, die zu Web Components werden (Abgrenzung im Einzelnen offen, siehe 8.1):
 
-| Teil | SPEC | Ohne JavaScript heute |
-|---|---|---|
-| Kopf und Fuß | 6.1 | vollständig |
-| Fotoraster | 6.1 | vollständig |
-| Großansicht | 6.3 | nicht vorhanden |
-| Stationen | 6.4, 6.5 | vollständig, einklappbar |
-| Karte mit Wegpunkten | 6.5, 6.6 | vollständig, einklappbar |
-| Panorama | 6.7 | flacher Streifen |
-| Hell/Dunkel-Umschalter | 6.2 | Systemeinstellung, kein Umschalter |
-| Wanderung (geplant) | WANDERUNG.md | Abschnittskopf und Kennzahlen (WANDERUNG 13.1) |
-
-Die rechte Spalte ist der Ausgangspunkt für G2′: Was heute ohne JavaScript geht, soll möglichst so bleiben.
+| Teil | SPEC | Ohne JavaScript heute | Ohne JavaScript künftig (G2′) |
+|---|---|---|---|
+| Kopf und Fuß | 6.1 | vollständig | vollständig |
+| Fotoraster | 6.1 | vollständig | vollständig, alle Fotos |
+| Großansicht | 6.3 | nicht vorhanden | einfach, per `:target` (3.1) |
+| Stationen | 6.4, 6.5 | vollständig, einklappbar | nichts |
+| Karte mit Wegpunkten | 6.5, 6.6 | vollständig, einklappbar | nichts |
+| Panorama | 6.7 | flacher Streifen | offen (8.3) |
+| Hell/Dunkel-Umschalter | 6.2 | Systemeinstellung, kein Umschalter | Systemeinstellung, kein Umschalter |
+| Wanderung (geplant) | WANDERUNG.md | Abschnittskopf und Kennzahlen (WANDERUNG 13.1) | nichts |
 
 ## 5. Bau
 
@@ -113,17 +139,27 @@ anderen aufrufen. Wie sie miteinander reden (Ereignisse, Methoden), ist festzule
 Heute stecken die Vorschauen im `<img>` des Rasters; jedes Bild ist einmal eingebettet (SPEC 9.6).
 Vorschlag:
 
-- eine zentrale Bildtabelle im Rumpf, Widgets verweisen per Kennung darauf
-- die großen Base64-Daten in eigenen `<script type="application/json">`-Blöcken, damit der Bau sie weiter
-  direkt in die Datei schreiben kann
-- Vorschaubilder, die ohne JavaScript sichtbar sein sollen, stehen ohnehin als `<img>` in der
-  JavaScript-freien Darstellung; die Component kann sie von dort übernehmen statt sie doppelt einzubetten
+- Die Bilddaten selbst stehen nicht im JSON, sondern im HTML der Grundansicht: Vorschauen im `<img>` des
+  Rasters, große Bilder im `<img>` der Großansicht ohne JavaScript (3.1). So ist jedes Bild einmal
+  eingebettet, und G2′ kostet keinen zusätzlichen Platz.
+- Das JSON enthält eine zentrale Bildtabelle (Kennung, Unterschrift, Datum, Maße); Widgets verweisen per
+  Kennung darauf und holen sich die Bilddaten aus dem HTML.
+- Bilder, die nicht im Raster stehen (nur in einem Widget wie der Wanderung, SPEC 9.6), brauchen einen eigenen
+  Ort, z. B. `<script type="application/json">`-Blöcke, die der Bau direkt in die Datei schreibt.
+- Auf einer fremden Seite gibt es diese Grundansicht nicht. Eine isoliert eingebundene Component braucht ihre
+  Bilder deshalb auf anderem Weg (siehe 8.4).
 
-### 8.3 JavaScript-freie Darstellung erzeugen
+### 8.3 Grundansicht erzeugen
 
-Der Bau muss sie in Python erzeugen, die Component ihre volle Darstellung in JavaScript. Das ist doppelte
-Darstellungslogik. Zu klären: Ersetzt die Component die JavaScript-freie Darstellung, oder baut sie darauf
-auf? Und wo liegt die Vorlage dafür, im Python-Code oder neben der Component?
+- Kopf, Fuß, Raster und Großansicht ohne JavaScript erzeugt der Bau in Python, die Components mit JavaScript
+  ihre volle Darstellung. Für diese vier Teile gibt es also doppelte Darstellungslogik. Vorschlag: Die
+  Components bauen auf dem vorhandenen HTML auf (Bilder, Texte, Reihenfolge), statt es aus dem JSON neu zu
+  erzeugen.
+- Panoramen: Erscheinen sie ohne JavaScript als gewöhnliches Foto im Raster (flacher Streifen, öffnet in der
+  Großansicht)? Heute sind sie nicht Teil der Großansicht (SPEC 6.7).
+- „Alle Fotos": alle Fotos der Galerie (SPEC 9.6, `[galerie]`), oder auch Fotos, die nur in einem Widget wie
+  der Wanderung vorkommen?
+- Soll die Seite ohne JavaScript darauf hinweisen, dass Karte, Stationen usw. fehlen?
 
 ### 8.4 Widgets auf fremden Seiten
 
@@ -164,8 +200,10 @@ Bleibt es dabei, dass Python rechnet und die Components nur darstellen (Abschnit
 
 ## 9. Bei der Umsetzung anzupassen
 
-- SPEC.md: Grundsatz G2 durch G2′ ersetzen, Abschnitt 6 je Teil um die JavaScript-freie Darstellung ergänzen,
-  Abschnitt 7 („Einklappen per Checkbox") neu bewerten.
+- SPEC.md: Grundsatz G2 durch G2′ ersetzen, Abschnitt 6.3 um die Großansicht ohne JavaScript ergänzen.
+  Abschnitt 6.5 und 7 („Einklappen per Checkbox"): Der Grund dafür war G2; Stationen und Karte brauchen
+  künftig JavaScript, das Einklappen kann also per Skript geschehen.
 - AGENTS.md: Aufbau von `fotoalbum.py`, Regel 2, Prüfen.
-- WANDERUNG.md: 13.1 und 13.4 an G2′ und die Component anpassen.
+- WANDERUNG.md: 13.1 widerspricht G2′ (dort Abschnittskopf und Kennzahlen ohne JavaScript, künftig nichts);
+  13.1 und 13.4 an G2′ und die Component anpassen.
 - README.md: Voraussetzungen und Aufbau, falls das Werkzeug aus mehreren Dateien besteht.
