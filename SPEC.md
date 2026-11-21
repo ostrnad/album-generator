@@ -11,6 +11,8 @@ Stand (Version `1.5`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das Geplan
   eingebettet. (Geplante Ausnahme: der verlinkte Modus, siehe 9.1.)
 - **G2 – Grundansicht ohne JavaScript:** Titel, Raster, Unterschriften, Karte und Hell/Dunkel nach
   Systemeinstellung sind reines HTML/CSS. Großansicht, Speichern, Umschalter und Panorama-Widget sind Zusatz.
+  *Entfällt mit der Umstellung auf Web Components* (Entscheidung des Nutzers); an ihre Stelle tritt G2′,
+  siehe [ARCHITEKTUR.md](ARCHITEKTUR.md). Bis dahin gilt G2 für den umgesetzten Stand.
 - **G3 – Keine Foto-Metadaten in der Ausgabe:** EXIF (inkl. GPS) wird nicht übernommen. Ausnahme sind die
   bewusst konfigurierten Wegpunkte.
 - **G4 – Konfiguration von Hand editierbar:** TOML mit deutschen Schlüsseln und erklärenden Kommentaren.
@@ -289,3 +291,9 @@ Fotos werden einmal als `[[bild]]` definiert. Widgets verweisen über den Datein
 
 **Bei der Umsetzung anzupassen:** Abschnitte 4, 5, 6.1 und 6.3 sowie README.md (Konfiguration und der Satz
 zur Reihenfolge der `[[bild]]`-Blöcke).
+
+### 9.7 Rumpfseite und Web Components (entschieden, nicht umgesetzt)
+
+Die Seite wird aus einer Rumpfseite mit den Daten als JSON und Widgets als Web Components zusammengesetzt; nur
+benutzte Widgets kommen in die Datei. Alle bisherigen Teile werden Web Components, G2 entfällt zugunsten von
+G2′. Beschrieben in [ARCHITEKTUR.md](ARCHITEKTUR.md). Begonnen wird mit dem Panorama-Widget.

@@ -2,7 +2,8 @@
 
 Dieses Repository enthält ein einzelnes Python-Tool, `fotoalbum.py`. Was es tut und tun soll, steht in
 [SPEC.md](SPEC.md); die Benutzung in [README.md](README.md); das gemeinsame Grunddesign, auf dem alle Teile
-der Seite aufbauen, in [DESIGN.md](DESIGN.md). Lies SPEC.md, bevor du etwas änderst, und DESIGN.md, bevor du
+der Seite aufbauen, in [DESIGN.md](DESIGN.md). Die geplante Architektur aus Rumpfseite und Web Components steht in
+[ARCHITEKTUR.md](ARCHITEKTUR.md). Lies SPEC.md, bevor du etwas änderst, und DESIGN.md, bevor du
 etwas am Aussehen änderst.
 
 ## Wichtig zuerst
@@ -13,9 +14,11 @@ etwas am Aussehen änderst.
 - **Offene Entscheidungen nicht selbst treffen.** SPEC.md Abschnitt 9.1 listet fünf Fragen zum verlinkten
   Modus, die der Nutzer beantworten muss. Erst fragen, dann umsetzen.
   Ebenso WANDERUNG.md Abschnitt 14 für das Wanderungs-Widget.
-- **Wanderungs-Widget nicht umsetzen, solange keine echte Bergfex-GPX-Datei im Repository liegt**
-  (WANDERUNG.md Entscheidung 15). Wird die Umsetzung verlangt, ablehnen und den Nutzer darauf hinweisen, dass
-  die Datei noch fehlt. An der Spec weiterarbeiten ist erlaubt.
+  Für den Umbau auf Web Components gilt ARCHITEKTUR.md; Einzelheiten nach deren Abschnitt 8.10 mit dem
+  Nutzer klären.
+- **Wanderungs-Widget erst umsetzen, wenn die Architektur steht.** Die Bergfex-Beispieldatei liegt in
+  `tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx` (WANDERUNG.md Entscheidung 15). Die Wanderung wird eine Web Component;
+  begonnen wird laut ARCHITEKTUR.md mit dem Panorama. An der Spec weiterarbeiten ist erlaubt.
 - **Die `album.toml` bleibt rückwärtskompatibel (SPEC G6).** Würde eine Änderung eine bisher gültige
   Konfiguration brechen oder anders auswerten: nicht umsetzen, sondern zuerst ausdrücklich darauf hinweisen
   und auf die Entscheidung des Nutzers warten.

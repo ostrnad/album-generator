@@ -200,13 +200,16 @@ Bedarf zusammengelegt oder getrennt.
 
 - Gelesen werden Spuren (`trk`/`trkseg`/`trkpt`). Gibt es keine, dann Routen (`rte`/`rtept`).
 - Höhe (`ele`) und Zeit (`time`) sind optional. Der XML-Namensraum spielt keine Rolle.
-- Eine GPX-Datei ist immer genau eine Tour, auch wenn sie aus mehreren Spuren (`trk`) oder Stücken
-  (`trkseg`) besteht. Das entsteht z. B., wenn die Aufzeichnung pausiert wurde.
-- Alle Stücke werden in der Reihenfolge der Datei zu einer Route aneinandergehängt.
+- Eine GPX-Datei ist immer genau eine Tour und wird vorerst nur mit **einer Spur** (`trk`) ausgewertet.
+  Enthält sie mehrere Spuren, gibt der Bau eine Meldung aus (welche Datei, wie viele Spuren) und verwendet
+  nur die erste; der Bau bricht nicht ab. Dasselbe gilt für `init` (3.4).
+- Eine Spur kann aus mehreren Stücken (`trkseg`) bestehen. Das entsteht z. B., wenn die Aufzeichnung
+  pausiert wurde. Die Stücke werden in der Reihenfolge der Datei zu einer Route aneinandergehängt.
 - Auf der Karte wird die Lücke zwischen zwei Stücken nicht mit einer Linie überbrückt. Sonst gibt es keinen
   Hinweis auf die Unterbrechung; Kilometer und Höhenprofil laufen einfach weiter.
 - Die Strecke der eigenen Berechnung zählt die Lücke nicht mit.
-- Für `init` (3.4) ist der Start der erste Punkt des ersten Stücks, das Ziel der letzte Punkt des letzten.
+- Für `init` (3.4) ist der Start der erste Punkt des ersten Stücks, das Ziel der letzte Punkt des letzten
+  (jeweils in der ersten Spur).
 
 ### 4.2 Route vereinfachen
 
@@ -221,6 +224,22 @@ Bergfex ist das übliche Werkzeug zum Aufzeichnen. Die Kennzahlen sollen mit den
 
 - **Standard:** Strecke, Aufstieg, Abstieg, höchster Punkt und Dauer kommen aus den Bergfex-Angaben in der
   GPX-Datei (`TrackStatsExtension`). Sie werden unverändert übernommen.
+
+  Bergfex schreibt die Angaben als `trk/extensions/gpxtrkx:TrackStatsExtension` (Namensraum
+  `http://www.garmin.com/xmlschemas/TrackStatsExtension/v1`), einmal je Spur. Zuordnung (festgestellt an
+  der Beispieldatei, Entscheidung 15):
+
+  | Kennzahl | Feld | Einheit |
+  |---|---|---|
+  | Strecke | `Distance` | Meter |
+  | Aufstieg | `Ascent` | Meter |
+  | Abstieg | `Descent` | Meter |
+  | Höchster Punkt | `MaxElevation` | Meter |
+  | Dauer | `TotalElapsedTime` | Sekunden, Gesamtzeit mit Pausen |
+
+  Nicht verwendet werden `MovingTime` (Bewegungszeit ohne Pausen; Bergfex zeigt sie zusätzlich an, für das
+  Album ist laut Nutzer nur die Gesamtzeit wichtig), `MinElevation`, `MovingSpeed`, `MaxSpeed` und
+  `Calories`. Werte sind Dezimalzahlen mit Punkt (`8051.00`).
 - **Fehlen die Bergfex-Angaben** oder einzelne Werte darin, wird der fehlende Wert selbst berechnet (unten).
   Der Bau nennt die betroffenen Etappen.
 - **`eigene_kennzahlen = true`:** Alle Werte werden selbst berechnet, auch wenn Bergfex-Angaben da sind.
@@ -228,10 +247,14 @@ Bergfex ist das übliche Werkzeug zum Aufzeichnen. Die Kennzahlen sollen mit den
 Eigene Berechnung:
 
 - **Strecke:** Summe der Abstände zwischen den ursprünglichen GPX-Punkten.
-- **Aufstieg und Abstieg:** Höhe vorher auf etwa 40 m Strecke geglättet. Kleine Schwankungen unter 3 m
-  zählen nicht.
+- **Aufstieg und Abstieg:** Summe aller Höhenzunahmen bzw. -abnahmen zwischen aufeinanderfolgenden
+  ursprünglichen GPX-Punkten, ohne Glättung und ohne Schwelle. So rechnet Bergfex offenbar: An der
+  Beispieldatei ergibt das genau 123 / 127 m wie die Bergfex-Angaben; die früher vorgesehene Glättung auf
+  40 m mit 3-m-Schwelle ergab nur 101 / 107 m. Bergfex speichert bereits geglättete Höhen. Bei verrauschten
+  Höhen anderer Quellen (z. B. reines GPS) liegt der Wert damit eher zu hoch. Geprüft nur an dieser einen Datei.
 - **Höchster Punkt.**
-- **Dauer:** letzte minus erste Zeit. Ohne Zeitangaben gibt es keine Dauer.
+- **Dauer:** letzte minus erste Zeit, also die Gesamtzeit mit Pausen wie `TotalElapsedTime` (an der
+  Beispieldatei identisch: 9896 s). Ohne Zeitangaben gibt es keine Dauer.
 
 Für die ganze Tour: Strecke, Aufstieg und Abstieg zusammengezählt, höchster Punkt ist das Maximum, Dauer ist
 die Summe der Etappen (Nächte zählen nicht). Das gilt für beide Quellen.
@@ -239,8 +262,8 @@ die Summe der Etappen (Nächte zählen nicht). Das gilt für beide Quellen.
 Höhenprofil, Höhe am Cursor und Steigung kommen immer aus den Punkten der GPX-Datei. Sie können daher leicht
 von den Bergfex-Kennzahlen abweichen, z. B. kann der höchste Punkt im Profil etwas anders sein.
 
-Welche Felder die Bergfex-Angaben genau enthalten (Namen, Einheiten, ob die Dauer Pausen enthält), ist noch
-an einer echten Bergfex-GPX-Datei festzustellen (Entscheidung 15).
+Beispieldatei: [`tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx`](tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx) (eine Spur, ein Stück, 1202 Punkte mit Höhe und Zeit). Vergleich dort:
+Strecke Bergfex 8051 m, eigene Berechnung 8042 m; höchster Punkt 901 m bzw. 901,3 m.
 
 ### 4.4 Fotos der Tour
 
@@ -460,7 +483,9 @@ dazugekommen.
    an `[[wanderung]]` gibt es nicht; dort ist `gpx` ein unbekannter Schlüssel und damit ein Fehler (3.2).
 3. **Zoomstufen:** *Entschieden:* relativ zur Stufe, bei der die Route ganz ins Bild passt, je Ansicht. Siehe 7.1.
 4. **Position eines Halts:** *Entschieden:* entweder `km` oder `lat`/`lon`, nicht beides. Siehe 3.1.
-5. **Mehrere Spuren in einer GPX:** *Entschieden:* aneinanderhängen, Lücken auf der Karte nicht verbinden. Siehe 4.1.
+5. **Mehrere Spuren in einer GPX:** *Entschieden (geändert):* vorerst nur eine Spur. Bei mehreren Spuren
+   Meldung und nur die erste verwenden. Mehrere Stücke (`trkseg`) einer Spur werden aneinandergehängt,
+   Lücken auf der Karte nicht verbunden. Siehe 4.1.
 6. **Höchstzahl Kacheln:** *Entschieden:* vorerst keine Höchstzahl. `init` schätzt Anzahl und Größe (3.3), der
    Bau nennt die genauen Werte (4.5).
 7. **Datum einer Etappe:** *Entschieden:* `init` schreibt es aus der GPX-Zeit, sonst aus dem ersten Foto mit
@@ -480,9 +505,9 @@ dazugekommen.
     Der Bau liest ihn nicht aus der GPX-Datei, sondern nimmt `titel` aus der `album.toml`. Siehe 3.3.
 14. **GPX-Dateien zu Wanderungen zusammenfassen:** *Entschieden*, siehe Abschnitt 3.4.
 
-15. **Felder der Bergfex-Angaben:** Dafür wird eine echte, von Bergfex exportierte GPX-Datei gebraucht.
-    Daran wird festgelegt, welches Feld welche Kennzahl liefert. Ohne Beispieldatei lässt sich 4.3 nicht
-    umsetzen. Der Nutzer legt die Datei später ins Repository. Bis dahin wird das Widget nicht umgesetzt.
+15. **Felder der Bergfex-Angaben:** *Entschieden* an der Beispieldatei `tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx`: Zuordnung
+    in 4.3, Dauer ist die Gesamtzeit mit Pausen (`TotalElapsedTime`). Die eigene Berechnung von Auf- und
+    Abstieg folgt Bergfex (4.3).
 
 **Für später vorgemerkt:** Andere Wege, an die Kacheln zu kommen, als jede einzeln vom OpenStreetMap-Server
 zu laden. Grund: Dateigröße und die Nutzungsregeln von OpenStreetMap, die massenhaftes Herunterladen
@@ -495,7 +520,7 @@ SPEC 9.2 („Route aus GPX-Datei") ist mit der Umsetzung dieses Widgets erledigt
 
 Zusätzlich zu den Prüfungen in AGENTS.md:
 
-- Testdaten: eine echte Bergfex-GPX-Datei; künstliche GPX-Dateien mit und ohne Höhe und Zeit, eine mit zwei Spuren, eine nur mit `rte`.
+- Testdaten: die echte Bergfex-GPX-Datei `tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx`; künstliche GPX-Dateien mit und ohne Höhe und Zeit, eine mit zwei Spuren (Meldung, nur die erste wird verwendet), eine mit zwei Stücken, eine nur mit `rte`.
   Fotos mit GPS nahe der Route und weit weg.
 - Kacheln von einem lokalen Testserver (per `kacheln` an der Wanderung), nicht von OpenStreetMap.
 - Eintägig und mehrtägig, jeweils Desktop und Handy, hell und dunkel, und ohne JavaScript.
