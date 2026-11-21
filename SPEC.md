@@ -194,14 +194,16 @@ Software-Rendering). **Nicht** geprüft:
 - Echte iPhone-Panoramen hat der Nutzer selbst ausprobiert („sieht super aus und funktioniert"); welche
   Geräte und Browser, ist nicht dokumentiert. `PANO_BESCHNITT` = 0,77 bleibt eine Schätzung (so gewählt,
   dass 26 mm 54° ergibt), wurde aber nicht beanstandet.
-- Zwei-Finger-Zoom im Panorama: nur implementiert, nicht auf einem Touch-Gerät geprüft
+- Fingersteuerung im Panorama (Schwenken, Neigen, Nachlauf): vom Nutzer am iPhone in Safari geprüft
+  (Version 1.6, „fühlt sich gut an“). Zwei-Finger-Zoom dabei nicht ausdrücklich bestätigt; andere Touch-Geräte
+  und Browser nicht geprüft
 - Freigabe und Neuaufbau des Grafikkontexts: nur in Chrome mit Software-Rendering geprüft
 - Abruf echter OpenStreetMap-Kacheln (nur gegen einen lokalen Ersatzserver getestet)
 - ein Album in voller Größe (36 echte Fotos), Ladezeit und Speicherbedarf auf Handys
 - Safari, Firefox, echte Mobilgeräte; lokales Öffnen auf dem iPhone (dort läuft JavaScript in der
   Dateien-Vorschau vermutlich nur eingeschränkt)
 - Es gibt keine automatisierten Tests. Die Testseiten der Web Components (ARCHITEKTUR.md 7) sind zum
-  Ansehen gedacht; geprüft wurde das Panorama-Widget bisher nur in Chrome mit Software-Rendering.
+  Ansehen gedacht; geprüft wurde das Panorama-Widget in Chrome mit Software-Rendering und vom Nutzer am iPhone (Safari).
 
 ## 9. Geplant
 
