@@ -1,7 +1,7 @@
 # ARCHITEKTUR – Rumpfseite und Web Components
 
-**Stand: Idee, nicht umgesetzt.** Grundzüge sind entschieden (Abschnitt 2), Einzelheiten offen (Abschnitt 8).
-Vor der Umsetzung müssen die offenen Fragen beantwortet sein.
+**Stand: in Arbeit, nicht umgesetzt.** Die Entscheidungen stehen in Abschnitt 2, offene Fragen in Abschnitt 8.
+Vor der Umsetzung müssen sie beantwortet sein; zum Vorgehen siehe Abschnitt 10.
 
 Dieses Dokument beschreibt, wie die erzeugte Seite künftig aufgebaut ist und wie der Bau sie zusammensetzt.
 Was die einzelnen Teile tun und wie sie aussehen, steht weiter in [SPEC.md](SPEC.md), [WANDERUNG.md](WANDERUNG.md)
@@ -34,6 +34,13 @@ Der Bau setzt beides zu **einer** HTML-Datei zusammen, in der alles eingebettet 
 - **Schrift von außen festlegbar:** Jedes Widget bietet eine Schnittstelle, über die man von außen die Schrift
   festlegt. Im Album nehmen die Widgets standardmäßig die eingebettete Schrift der Rumpfseite.
 - **Python rechnet, die Components formatieren und stellen dar** (Abschnitt 5).
+- **Eigene Dateien, kein Build-Werkzeug:** Jede Component liegt als reines JavaScript in einem eigenen
+  Verzeichnis im Repository (Abschnitt 5.1). Kein npm, kein Bundler, kein TypeScript. `fotoalbum.py` fügt
+  die Dateien beim Bau zusammen.
+- **Testdaten je Component:** Zu jeder Component liegen ihre Testdaten im Repository, in ihrem Verzeichnis.
+  Sie sind rein synthetisch (Abschnitt 7).
+- **Aussehen bleibt:** Nach dem Umbau sehen die bestehenden Teile aus wie bisher. Die heutige Seite dient
+  als Vergleich.
 - **Components bauen auf der Grundansicht auf:** Raster und Großansicht übernehmen das HTML, das der Bau für
   die Grundansicht schreibt (Bilder, Texte, Reihenfolge), statt es aus dem JSON neu zu erzeugen.
 - **Alle Teile außer dem Rumpf werden Web Components:** Alle bisherigen Teile des Albums werden durch Web
@@ -180,6 +187,28 @@ Bisherige Teile und was aus ihnen wird:
 - Die großen Base64-Blöcke werden weiter direkt in die Datei geschrieben, nicht erst im Speicher
   zusammengesetzt.
 
+### 5.1 Dateien im Repository
+
+Vorschlag für den Aufbau:
+
+```
+fotoalbum.py                 Bau: rechnet, schreibt Rumpf und Grundansicht, fügt Components ein
+widgets/
+  grossansicht/
+    grossansicht.js          die Component (reines JavaScript, mit ihrem CSS)
+    testdaten/               synthetische Testdaten dieser Component
+  raster/
+  stationen/
+  karte/
+  panorama/
+  wanderung/
+```
+
+- Der Bau liest die Dateien der benutzten Components und schreibt ihren Inhalt in die HTML-Datei (G1).
+- Jede Datei läuft auch ungebaut direkt im Browser, z. B. in ihrer Testseite.
+- Folge: `fotoalbum.py` allein reicht nicht mehr, man braucht das Verzeichnis `widgets/` daneben. Ob Rumpf
+  und Schrift ebenfalls eigene Dateien werden, ist bei der Umsetzung festzulegen.
+
 ## 6. Widgets außerhalb des Albums
 
 Am Beispiel der Wanderung: Die Component soll ohne den Rest des Albums auf einer fremden Seite laufen. Daraus
@@ -200,7 +229,9 @@ folgt:
 
 Die Aufteilung in Widgets ist auch die Aufteilung der Tests:
 
-- Jedes Widget bekommt einen eigenen Satz synthetischer Testdaten, die nur dieses Widget betreffen.
+- Jedes Widget bekommt einen eigenen Satz Testdaten, die nur dieses Widget betreffen. Sie liegen im
+  Repository im Verzeichnis der Component (5.1) und sind rein synthetisch: erzeugte Bilder, Kacheln,
+  GPX-Dateien. Echte Fotos oder Touren gehören nicht dazu.
 - Jedes Widget bekommt eine Testseite (Harness), die das Widget isoliert einbindet und seine Testfälle zeigt:
   hell und dunkel, Handy- und Desktopbreite, ohne JavaScript.
 - Die Testseiten werden über GitHub Pages veröffentlicht, auch von Feature-Branches, und zwar so, dass
@@ -240,27 +271,33 @@ Darstellung. Siehe 5. Bei der Umsetzung festzulegen: die Einheiten und Formate d
 
 ### 8.6 Dateien und Werkzeuge
 
-- Heute ist das Werkzeug eine einzige Datei. Vorschlag: Die Components werden eigene Dateien (z. B.
-  `widgets/wanderung/wanderung.js`), der Bau bettet sie ein. Dann reicht `fotoalbum.py` allein nicht mehr.
-- Vorschlag: reines JavaScript ohne npm, Bundler oder TypeScript, damit keine neue Abhängigkeit entsteht und
-  die Dateien direkt im Browser laufen.
+*Entschieden:* eigene Verzeichnisse, reines JavaScript ohne Build-Werkzeuge, `fotoalbum.py` fügt zusammen.
+Siehe 2 und 5.1.
 
 ### 8.7 Tests und GitHub Pages
 
-- Ort der Testdaten und Testseiten: `tests/widgets/<name>/` oder neben dem Code des Widgets?
-- Pages: Vorschlag ist ein Branch `gh-pages` mit einem Ordner pro Branch. Ein Workflow baut bei jedem Push die
-  Testseiten und ersetzt nur den Ordner seines Branches; beim Löschen eines Branches wird der Ordner entfernt;
-  eine Startseite listet Branches und Widgets. Die Kacheln liefert ein Testserver im Workflow.
-- Die Testseiten sind öffentlich (das Repository ist öffentlich). Mit synthetischen Daten kein Problem; die
-  echte Bergfex-GPX-Datei (`tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx`) wäre dort als Karte zu sehen.
+- *Entschieden:* Testdaten je Component in deren Verzeichnis, rein synthetisch. Siehe 7.
+- Offen: Die echte Bergfex-Datei (`tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx`) ist nicht synthetisch.
+  Sie war die Vorlage für die Feldzuordnung (WANDERUNG 4.3). Bleibt sie als Referenz im Repository (wo?), wird
+  sie durch eine synthetische Datei mit gleichem Aufbau ersetzt, oder beides?
+- Offen: Werden die Testdaten als fertige Dateien eingecheckt oder von einem Skript im Verzeichnis erzeugt?
+  AGENTS.md verbietet bisher, Testbilder einzuchecken.
+- Offen: Pages. Vorschlag ist ein Branch `gh-pages` mit einem Ordner pro Branch. Ein Workflow baut bei jedem
+  Push die Testseiten und ersetzt nur den Ordner seines Branches; beim Löschen eines Branches wird der Ordner
+  entfernt; eine Startseite listet Branches und Widgets. Die Kacheln sind synthetisch und gehören zu den
+  Testdaten.
+- Offen: Aufbau einer Testseite (Vorschlag: alle Testfälle untereinander, Umschalter hell/dunkel, Breite per
+  `<iframe>`, Ansicht ohne JavaScript per `<iframe sandbox>`).
 
 ### 8.8 Umbau und Reihenfolge
 
-- Soll der Umbau das Aussehen der bestehenden Teile unverändert lassen? Dann dient die heutige Seite als
-  Vergleich.
-- Die Bergfex-Beispieldatei liegt vor (WANDERUNG Entscheidung 15). Offen ist, ob die Architektur zuerst an
-  einem bestehenden Widget eingeführt wird, etwa am Panorama, das schon heute nur mit JavaScript voll läuft,
-  oder gleich an der Wanderung.
+- *Entschieden:* Die bestehenden Teile sehen nach dem Umbau aus wie bisher.
+- Offen: Wird die Architektur zuerst an einem bestehenden Widget eingeführt, etwa am Panorama, oder gleich an
+  der Wanderung?
+
+### 8.9 Hinweis ohne JavaScript bei Panoramen
+
+Noch zu bestätigen: Panoramen zählen als Fotos und lösen den Hinweis allein nicht aus (3.2).
 
 ## 9. Bei der Umsetzung anzupassen
 
@@ -270,4 +307,12 @@ Darstellung. Siehe 5. Bei der Umsetzung festzulegen: die Einheiten und Formate d
 - AGENTS.md: Aufbau von `fotoalbum.py`, Regel 2, Prüfen.
 - WANDERUNG.md: 13.1 widerspricht G2′ (dort Abschnittskopf und Kennzahlen ohne JavaScript, künftig nichts);
   13.1 und 13.4 an G2′ und die Component anpassen.
-- README.md: Voraussetzungen und Aufbau, falls das Werkzeug aus mehreren Dateien besteht.
+- README.md: Voraussetzungen und Aufbau; das Werkzeug besteht künftig aus `fotoalbum.py` und `widgets/`.
+- AGENTS.md, Abschnitt Git: Testdaten der Components werden eingecheckt (bisher verboten), sofern sie
+  synthetisch sind.
+
+## 10. Vorgehen
+
+1. Die Architektur wird in diesem Dokument fertig beschrieben, bis Abschnitt 8 keine offenen Fragen mehr hat.
+2. Dann ein Pull Request nach `main`.
+3. Erst wenn der Stand auf `main` ist, beginnt die Umsetzung, in einer neuen Sitzung auf einem neuen Branch.
