@@ -1,0 +1,44 @@
+# Testseiten der Web Components auf GitHub Pages veröffentlichen (ARCHITEKTUR.md 7.2).
+# Jeder Branch bekommt einen eigenen Ordner auf dem Branch gh-pages; wird ein Branch gelöscht,
+# verschwindet sein Ordner. Pages muss in den Einstellungen auf den Branch gh-pages (Ordner /) stehen.
+name: Testseiten
+
+on:
+  push:
+    branches-ignore: [gh-pages]
+  delete:
+
+permissions:
+  contents: write
+
+concurrency:
+  # neuere Pushes desselben Branches ersetzen ältere; verschiedene Branches laufen parallel
+  group: testseiten-${{ github.event_name == 'delete' && github.event.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  veroeffentlichen:
+    if: github.event_name == 'push' || github.event.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Testseiten bauen
+        if: github.event_name == 'push'
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          pip install pillow
+          python widgets/testseiten.py "$RUNNER_TEMP/seiten" --branch "$BRANCH"
+
+      - name: Auf gh-pages veröffentlichen
+        env:
+          BRANCH: ${{ github.event_name == 'delete' && github.event.ref || github.ref_name }}
+          LOESCHEN: ${{ github.event_name == 'delete' }}
+          QUELLE: ${{ runner.temp }}/seiten
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/pages/veroeffentlichen.sh
