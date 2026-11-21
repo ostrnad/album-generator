@@ -35,17 +35,21 @@ Reihenfolge in der Datei (Zeilennummern verschieben sich, per `grep -n` suchen):
 | Hilfsfunktionen | `exif_lesen`, `ist_panorama`, `pano_bildwinkel_exif`, `entfernung_km`, `als_datum`, `datum_text`, `zeitraum_text` |
 | Schritt 1 | `cmd_init` – schreibt die `album.toml` zeilenweise |
 | Schritt 2 | `jpeg_bytes`, `bild_verarbeiten`, `kachel_laden`, `karte_rendern`, `karte_html`, `klappbar`, `stationen_html`, `cmd_build` |
-| Vorlage | `DARK_VARS`, `dark_css`, `CSS`, Icons, `TEMPLATE`, `JS`, `JS_PANO` |
+| Einbettung | `eingebettet`, `panorama_figur`, `widget_daten_json`, `komponenten_js`, `UEBERGABE_JS` |
+| Vorlage | `DARK_VARS`, `dark_css`, `CSS`, Icons, `TEMPLATE`, `JS` |
 | Schrift | `FONT_400`, `FONT_600` (Base64, nicht lesen) |
 | Einstieg | `main` mit `argparse` |
 
 Wie die Vorlage zusammengesetzt wird:
 
-- `CSS`, `JS` und `JS_PANO` sind rohe Strings. `TEMPLATE` ist ein f-String: geschweifte Klammern darin
+- `CSS` und `JS` sind rohe Strings. `TEMPLATE` ist ein f-String: geschweifte Klammern darin
   müssen verdoppelt werden.
 - Platzhalter der Form `%%NAME%%` werden in `cmd_build` per `str.replace` gefüllt. `%%FOTOS%%` und
   `%%DATEN%%` teilen die Seite, damit die großen Base64-Blöcke direkt in die Datei gestreamt werden.
-- `JS_PANO` wird nur angehängt, wenn das Album ein Panorama enthält.
+- Web Components liegen in `widgets/<name>/<name>.js` (ARCHITEKTUR.md 5.1), gemeinsame Hilfen in
+  `widgets/gemeinsam/`. `komponenten_js` hängt nur die benutzten an, dazu `UEBERGABE_JS`, das den JSON-Block
+  `album-daten` (`%%WIDGETDATEN%%`) per Eigenschaft `daten` an die Elemente mit `data-daten` verteilt.
+  Bisher umgesetzt: `panorama`. Die übrigen Teile stecken noch in `CSS`/`JS`.
 - Alles, was aus der Konfiguration ins HTML geht, läuft durch `html.escape`.
 
 ## Regeln für Änderungen
@@ -88,18 +92,22 @@ Danach die erzeugte Seite im Browser ansehen, mindestens:
 - bei Kartenänderungen: `art = "route"` und `art = "punkte"`
 - bei Panoramaänderungen: gerade Linien bleiben gerade (siehe unten)
 
-Bewährte Testdaten (bisher von Hand erzeugt, noch nicht im Repository):
+Testseiten der Web Components (ARCHITEKTUR.md 7): `python widgets/testseiten.py <Ordner>` erzeugt je
+Widget eine Testseite aus synthetischen Testdaten (`widgets/<name>/testseite.py`, `widgets/<name>/testdaten/`)
+und ein Beispielalbum. Ein Workflow veröffentlicht sie bei jedem Push auf GitHub Pages
+(`<branch>/<widget>/`). Bei Änderungen an einer Component ihre Testseite ansehen.
+
+Weitere bewährte Testdaten (bisher von Hand erzeugt, noch nicht im Repository):
 
 - Fotos: mit Pillow erzeugte JPEG- und HEIC-Bilder in Hoch-, Quer- und Quadratformat, eines mit
   EXIF-Drehung, einige mit GPS und Aufnahmedatum, eines ohne EXIF.
 - Karte: lokaler HTTP-Server, der beliebige Kacheln `/{z}/{x}/{y}.png` liefert; in `[karte]` als `kacheln`
   eintragen. So läuft der Test ohne Internet und ohne den OSM-Server zu belasten.
-- Panorama: synthetisches Zylinder-Panorama eines Quaders mit Gitterlinien (Strahl pro Pixel aus
-  Zylinderkoordinaten, Schnitt mit den Wänden). Im Widget müssen die Gitterlinien gerade sein.
+- Panorama: liegt jetzt als Erzeuger in `widgets/panorama/testdaten/erzeugen.py`.
 - Browser-Automatisierung: Playwright mit Chrome hat funktioniert, für WebGL mit Software-Rendering.
 
-Ein sinnvoller erster Auftrag wäre, diese Testdaten-Erzeugung und einen Rauchtest als `tests/` ins
-Repository zu holen.
+Die übrigen Testdaten kommen mit der Umstellung der jeweiligen Teile auf Web Components in deren
+Verzeichnis.
 
 ## Was als ungeprüft gilt
 
@@ -109,4 +117,5 @@ und Antworten nichts davon als funktionierend, solange es niemand geprüft hat.
 ## Git
 
 - Kleine, thematisch saubere Commits; Nachricht auf Deutsch im Imperativ („Ergänze …", „Behebe …").
-- Erzeugte Alben, Testbilder und `album.toml` aus Testordnern nicht einchecken.
+- Erzeugte Alben, Testseiten und `album.toml` aus Testordnern nicht einchecken. Synthetische Testdaten einer
+  Component (bzw. ihr deterministischer Erzeuger) gehören in deren Verzeichnis und werden eingecheckt.

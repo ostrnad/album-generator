@@ -5,12 +5,14 @@ CSS und JavaScript sind eingebettet; neben der HTML-Datei gibt es keine weiteren
 
 Ausgelegt auf etwa 30–40 Bilder pro Album, für Desktop und Handy, mit hellem und dunklem Design.
 
-Stand: Version `1.5`.
+Stand: Version `1.6`.
 
 ## Voraussetzungen
 
 - Python 3.11 oder neuer
 - `pip install pillow pillow-heif`
+- das ganze Repository: `fotoalbum.py` braucht das Verzeichnis `widgets/` daneben (dort liegen die Web
+  Components, die der Bau in die HTML-Datei einbettet; siehe [ARCHITEKTUR.md](ARCHITEKTUR.md))
 - Internetzugang beim Bauen, falls das Album eine Karte enthält (einmalig, für die Kartenkacheln)
 
 ## Benutzung
@@ -110,6 +112,13 @@ lon = 8.56780                 # Pflicht
 - **Panorama**: hochkant aufgenommene, seitwärts geschwenkte Panoramen werden per WebGL entzerrt; Ziehen
   schwenkt, Plus/Minus, Doppelklick oder zwei Finger zoomen
 - **Ohne JavaScript** bleiben Raster, Unterschriften, Karte und Hell/Dunkel nach System erhalten
+
+## Testseiten der Widgets
+
+`python widgets/testseiten.py <Ordner>` erzeugt für jedes Widget eine Testseite mit synthetischen Testdaten
+(hell/dunkel, Handy- und Desktopbreite, ohne JavaScript) und ein kleines Beispielalbum. Bei jedem Push
+veröffentlicht ein Workflow sie auf GitHub Pages, je Branch in einem eigenen Ordner. Dafür muss Pages in den
+Einstellungen des Repositorys auf den Branch `gh-pages` (Ordner `/`) stehen.
 
 ## Wissenswertes
 

@@ -1,7 +1,7 @@
 # SPEC – fotoalbum.py
 
 Verbindliche Beschreibung dessen, was das Tool tut und tun soll. Abschnitte 1–7 beschreiben den umgesetzten
-Stand (Version `1.5`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das Geplante mit offenen Entscheidungen.
+Stand (Version `1.6`), Abschnitt 8 die bekannten Lücken, Abschnitt 9 das Geplante mit offenen Entscheidungen.
 
 ## 1. Ziel und Grundsätze
 
@@ -67,7 +67,9 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
   Bilder werden nie vergrößert.
 - Einbettung: beide Vorschauen als `srcset` mit data-URIs im `<img>`; das große Bild als Base64 in
   `<script type="text/plain" id="voll-N">` am Ende des `<body>`, damit das Raster zuerst erscheint.
-- Panorama: nur eine Größe, Breite ≤ `panorama_breite` (8192), als `<img>` mit data-URI.
+- Panorama: Breite ≤ `panorama_breite` (8192), als Base64 in `<script type="application/octet-stream"
+  data-typ="image/jpeg" id="pano-N">` am Ende des `<body>` (ARCHITEKTUR.md 3.4). Dazu ein flacher Streifen
+  mit höchstens 2560 px Breite (`PANO_VORSCHAU_BREITE`) als `<img>` mit data-URI im Raster.
 - Verarbeitung parallel in 4 Threads; Ausgabe wird stückweise geschrieben.
 
 ## 6. Die erzeugte Seite
@@ -143,6 +145,11 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
   im EXIF steht dort nur ein auskommentierter Hinweis.
   EXIF-Formel: v = 2·atan(`PANO_BESCHNITT` · 17,31 / f35) mit f35 = Kleinbild-Brennweite (EXIF-Tag 41989),
   17,31 mm = halbe lange Seite eines 4:3-Bildes bei Kleinbild-Diagonale, `PANO_BESCHNITT` = 0,77.
+- Umsetzung als Web Component `<album-panorama>` in `widgets/panorama/panorama.js` (ARCHITEKTUR.md).
+  Eingabe ist die Eigenschaft `daten` = `{version: 1, bild: "pano-N", breite, hoehe, bildwinkel}`; das
+  Übergabeskript der Seite setzt sie aus dem JSON-Block `album-daten` (Schlüssel im Attribut `data-daten`).
+  Die Component ersetzt den flachen Streifen per Shadow DOM, sobald WebGL läuft. Farben über
+  `--nav-bg`/`--nav-shadow`, Schrift über `--album-schrift`. Testseite: `widgets/panorama/testseite.py`.
 - Darstellung: WebGL-Fragment-Shader rechnet pro Pixel den Sichtstrahl einer geradlinigen Kamera
   (Gieren, Nicken, Zoom) auf Zylinderkoordinaten um. WebGL2 mit Mipmaps, sonst WebGL1.
 - Widget spannt alle Rasterspalten (`grid-column: 1 / -1`); Seitenverhältnis 2,2 am Desktop, 1,4 am Handy.
@@ -185,7 +192,8 @@ Software-Rendering). **Nicht** geprüft:
 - ein Album in voller Größe (36 echte Fotos), Ladezeit und Speicherbedarf auf Handys
 - Safari, Firefox, echte Mobilgeräte; lokales Öffnen auf dem iPhone (dort läuft JavaScript in der
   Dateien-Vorschau vermutlich nur eingeschränkt)
-- Es gibt keine automatisierten Tests.
+- Es gibt keine automatisierten Tests. Die Testseiten der Web Components (ARCHITEKTUR.md 7) sind zum
+  Ansehen gedacht; geprüft wurde das Panorama-Widget bisher nur in Chrome mit Software-Rendering.
 
 ## 9. Geplant
 

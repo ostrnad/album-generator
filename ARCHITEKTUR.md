@@ -1,7 +1,8 @@
 # ARCHITEKTUR – Rumpfseite und Web Components
 
-**Stand: beschrieben, nicht umgesetzt.** Die Entscheidungen stehen in Abschnitt 2, ihre Herleitung in
-Abschnitt 8. Was erst bei der Umsetzung festgelegt wird, steht in 8.10. Zum Vorgehen siehe Abschnitt 10.
+**Stand: in Umsetzung.** Umgesetzt ist das Panorama (Version 1.6, `widgets/panorama/`); alle übrigen Teile
+stecken noch in `fotoalbum.py`. Die Entscheidungen stehen in Abschnitt 2, ihre Herleitung in Abschnitt 8. Was
+erst bei der Umsetzung festgelegt wird, steht in 8.10. Zum Vorgehen siehe Abschnitt 10.
 
 Dieses Dokument beschreibt, wie die erzeugte Seite künftig aufgebaut ist und wie der Bau sie zusammensetzt.
 Was die einzelnen Teile tun und wie sie aussehen, steht weiter in [SPEC.md](SPEC.md), [WANDERUNG.md](WANDERUNG.md)
@@ -347,6 +348,19 @@ Keine Grundsatzfragen mehr, sondern Einzelheiten, die mit dem jeweiligen Widget 
 - Name und Art der Schnittstelle für die Schrift (6)
 - ob Rumpf und Schrift eigene Dateien werden (5.1)
 - Wortlaut und Aussehen des Hinweises ohne JavaScript (3.2)
+
+Mit dem Panorama festgelegt (gilt für alle folgenden Widgets):
+
+- Elementnamen `album-<widget>`, Eingabe-Eigenschaft `daten`, im Album gesetzt aus dem JSON-Block
+  `<script type="application/json" id="album-daten">` = `{"version": 1, "widgets": {"<schlüssel>": …}}`;
+  den Schlüssel trägt das Element im Attribut `data-daten`.
+- Jeder Ausschnitt hat ein eigenes Feld `version`.
+- `<script>`-Blöcke: `type="application/octet-stream"`, Medientyp in `data-typ`, Base64 als Inhalt;
+  `id` nach dem Muster `<art>-<nummer>`, z. B. `pano-1`.
+- Gemeinsame Hilfe zum Auflösen der `id`s: `widgets/gemeinsam/einbettung.js` (`AlbumEinbettung.bildUrl`).
+- Schrift: CSS-Variable `--album-schrift`, Standard ist die Schrift der Seite.
+- Die Ansicht ohne JavaScript steht als Inhalt im Element (z. B. ein `<img>`); die Component verdeckt sie
+  durch ihr Shadow DOM, sobald sie läuft.
 
 ## 9. Bei der Umsetzung anzupassen
 
