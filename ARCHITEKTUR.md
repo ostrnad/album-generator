@@ -232,12 +232,40 @@ Die Aufteilung in Widgets ist auch die Aufteilung der Tests:
 - Jedes Widget bekommt einen eigenen Satz Testdaten, die nur dieses Widget betreffen. Sie liegen im
   Repository im Verzeichnis der Component (5.1) und sind rein synthetisch: erzeugte Bilder, Kacheln,
   GPX-Dateien. Echte Fotos oder Touren gehören nicht dazu.
+- **Ausnahme Referenz:** Die echte Bergfex-Tour `tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx` bleibt
+  im Repository. Sie dient als Referenz für den Aufbau einer Bergfex-Datei und die Kennzahlen (WANDERUNG
+  4.3). Für weitere Fälle (mehrere Spuren, mehrere Stücke, ohne Höhe oder Zeit, nur `rte`, mehrtägig) kommen
+  synthetische Tracks dazu. Bei der Umsetzung der Wanderung zieht die Datei in deren Verzeichnis um.
+- **Eingecheckt oder erzeugt:** Grundsätzlich werden die Testdaten als fertige Dateien eingecheckt. Lassen
+  sie sich mit wenig Aufwand deterministisch erzeugen, darf stattdessen ein Skript im Verzeichnis der
+  Component sie erzeugen. Deterministisch heißt: gleicher Inhalt bei jedem Lauf, ohne Zufall und ohne Netz.
+  (Byte-gleiche JPEGs über verschiedene Pillow-Versionen sind damit nicht gemeint.)
 - Jedes Widget bekommt eine Testseite (Harness), die das Widget isoliert einbindet und seine Testfälle zeigt:
   hell und dunkel, Handy- und Desktopbreite, ohne JavaScript.
 - Die Testseiten werden über GitHub Pages veröffentlicht, auch von Feature-Branches, und zwar so, dass
   mehrere Branches gleichzeitig ihre eigenen Testseiten haben.
 
-Einzelheiten werden festgelegt, wenn die Architektur steht (siehe 8.7).
+### 7.1 Testseite
+
+- Eine Testseite je Component, im Verzeichnis der Component. Sie zeigt alle Testfälle untereinander.
+- Ein Umschalter für hell und dunkel.
+- Jeder Testfall in festen Breiten (Handy und Desktop) per `<iframe>`.
+- Eine Ansicht ohne JavaScript per `<iframe sandbox>` ohne `allow-scripts`; so lässt sie sich auch auf
+  Geräten prüfen, auf denen man JavaScript nicht abschalten kann.
+
+### 7.2 GitHub Pages
+
+- Ein Branch `gh-pages` mit einem Ordner pro Branch, z. B. `…github.io/album-generator/<branch>/panorama/`.
+  Schrägstriche im Branchnamen werden zu Bindestrichen.
+- Ein Workflow baut bei jedem Push auf einen beliebigen Branch die Testseiten und ersetzt nur den Ordner
+  dieses Branches. Schreibvorgänge auf `gh-pages` laufen nacheinander, damit sich parallele Läufe nicht
+  überschreiben.
+- Wird ein Branch gelöscht, entfernt ein zweiter Workflow seinen Ordner.
+- Eine Startseite listet alle Branches und ihre Testseiten.
+- Kacheln kommen aus den synthetischen Testdaten, nicht von OpenStreetMap.
+- Der Nutzer stellt Pages einmalig in den Einstellungen des Repositorys auf den Branch `gh-pages`.
+- Die Seiten sind öffentlich. Das betrifft auch die echte Bergfex-Tour, sobald die Wanderung eine Testseite
+  hat.
 
 ## 8. Offene Fragen
 
@@ -276,24 +304,13 @@ Siehe 2 und 5.1.
 
 ### 8.7 Tests und GitHub Pages
 
-- *Entschieden:* Testdaten je Component in deren Verzeichnis, rein synthetisch. Siehe 7.
-- Offen: Die echte Bergfex-Datei (`tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx`) ist nicht synthetisch.
-  Sie war die Vorlage für die Feldzuordnung (WANDERUNG 4.3). Bleibt sie als Referenz im Repository (wo?), wird
-  sie durch eine synthetische Datei mit gleichem Aufbau ersetzt, oder beides?
-- Offen: Werden die Testdaten als fertige Dateien eingecheckt oder von einem Skript im Verzeichnis erzeugt?
-  AGENTS.md verbietet bisher, Testbilder einzuchecken.
-- Offen: Pages. Vorschlag ist ein Branch `gh-pages` mit einem Ordner pro Branch. Ein Workflow baut bei jedem
-  Push die Testseiten und ersetzt nur den Ordner seines Branches; beim Löschen eines Branches wird der Ordner
-  entfernt; eine Startseite listet Branches und Widgets. Die Kacheln sind synthetisch und gehören zu den
-  Testdaten.
-- Offen: Aufbau einer Testseite (Vorschlag: alle Testfälle untereinander, Umschalter hell/dunkel, Breite per
-  `<iframe>`, Ansicht ohne JavaScript per `<iframe sandbox>`).
+*Entschieden:* Testdaten je Component, synthetisch, eingecheckt oder deterministisch erzeugt; Bergfex-Tour
+bleibt als Referenz; Testseite und Pages wie vorgeschlagen. Siehe 7.
 
 ### 8.8 Umbau und Reihenfolge
 
-- *Entschieden:* Die bestehenden Teile sehen nach dem Umbau aus wie bisher.
-- Offen: Wird die Architektur zuerst an einem bestehenden Widget eingeführt, etwa am Panorama, oder gleich an
-  der Wanderung?
+*Entschieden:* Die bestehenden Teile sehen nach dem Umbau aus wie bisher. Die Architektur wird zuerst am
+Panorama-Widget eingeführt.
 
 ### 8.9 Hinweis ohne JavaScript bei Panoramen
 
@@ -309,7 +326,7 @@ Noch zu bestätigen: Panoramen zählen als Fotos und lösen den Hinweis allein n
   13.1 und 13.4 an G2′ und die Component anpassen.
 - README.md: Voraussetzungen und Aufbau; das Werkzeug besteht künftig aus `fotoalbum.py` und `widgets/`.
 - AGENTS.md, Abschnitt Git: Testdaten der Components werden eingecheckt (bisher verboten), sofern sie
-  synthetisch sind.
+  synthetisch sind oder die Bergfex-Referenz; erzeugte Alben bleiben draußen.
 
 ## 10. Vorgehen
 
