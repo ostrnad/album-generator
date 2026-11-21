@@ -154,7 +154,12 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
   (Gieren, Nicken, Zoom) auf Zylinderkoordinaten um. WebGL2 mit Mipmaps, sonst WebGL1.
 - Widget spannt alle Rasterspalten (`grid-column: 1 / -1`); Seitenverhältnis 2,2 am Desktop, 1,4 am Handy.
 - Bedienung: Ziehen schwenkt; Plus/Minus, Doppelklick und Zwei-Finger-Geste zoomen (bis 4×).
-  Auf Touch-Geräten schwenkt nur waagerechtes Wischen (`touch-action: pan-y`), senkrechtes scrollt die Seite.
+- Touch (über Touch-Ereignisse, nicht Zeiger-Ereignisse, weil Safari eine Geste sonst abbricht, sobald sie
+  senkrecht wird): Unvergrößert entscheidet die erste Bewegung. Beginnt sie waagerecht, gehört die ganze Geste
+  dem Panorama, auch wenn sie danach die Richtung ändert; beginnt sie senkrecht, scrollt die Seite.
+  Vergrößert gehört jede Geste dem Panorama und schwenkt und neigt (`touch-action: none`); zum Scrollen der
+  Seite wieder verkleinern oder neben dem Panorama wischen. Die eigene Zoomgeste von Safari ist auf dem
+  Panorama unterdrückt.
 - Der Ausschnitt bleibt immer innerhalb des Bildes (Grenzen für Gieren, Nicken und Mindestzoom).
 - Auflösung: Breite ≤ `panorama_breite` (8192 px, reicht laut Nutzer). Ist das Bild breiter als
   `MAX_TEXTURE_SIZE` des Geräts, wird es im Browser vorher verkleinert.
