@@ -109,7 +109,7 @@ lon = 8.56780                 # Pflicht
 - **Einklappbar:** Stationen und Karte lassen sich getrennt ein- und ausklappen; am Desktop sind sie
   standardmäßig offen, am Handy zu (funktioniert ohne JavaScript)
 - **Karte** als eingebettetes Bild mit nummerierten Wegpunkten, wahlweise als Route verbunden
-- **Panorama**: hochkant aufgenommene, seitwärts geschwenkte Panoramen werden per WebGL entzerrt; Ziehen
+- **Panorama** ([PANORAMA.md](PANORAMA.md)): hochkant aufgenommene, seitwärts geschwenkte Panoramen werden per WebGL entzerrt; Ziehen
   schwenkt, Plus/Minus, Doppelklick oder zwei Finger zoomen
 - **Ohne JavaScript** bleiben Raster, Unterschriften, Karte und Hell/Dunkel nach System erhalten
 

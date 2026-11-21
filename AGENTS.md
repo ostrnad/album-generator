@@ -3,7 +3,8 @@
 Dieses Repository enthält ein einzelnes Python-Tool, `fotoalbum.py`. Was es tut und tun soll, steht in
 [SPEC.md](SPEC.md); die Benutzung in [README.md](README.md); das gemeinsame Grunddesign, auf dem alle Teile
 der Seite aufbauen, in [DESIGN.md](DESIGN.md). Die geplante Architektur aus Rumpfseite und Web Components steht in
-[ARCHITEKTUR.md](ARCHITEKTUR.md). Lies SPEC.md, bevor du etwas änderst, und DESIGN.md, bevor du
+[ARCHITEKTUR.md](ARCHITEKTUR.md); die Widgets haben eigene Beschreibungen ([PANORAMA.md](PANORAMA.md),
+[WANDERUNG.md](WANDERUNG.md)). Lies SPEC.md, bevor du etwas änderst, und DESIGN.md, bevor du
 etwas am Aussehen änderst.
 
 ## Wichtig zuerst

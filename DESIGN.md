@@ -131,7 +131,7 @@ Wie die Teile das Grunddesign nutzen. Die Einzelheiten stehen in SPEC.md.
 | Großansicht | eigener Grund, Passepartout mit festem Rand, runde Knöpfe, betonter Knopf „Speichern", schwebende Blätterknöpfe | 6.3 |
 | Stationen | Linie, Marken, Lesetext, Pille zum Aufklappen | 6.4, 6.5 |
 | Karte | Passepartout mit festem Rand, Marken, Route in „Betont", Pille zum Aufklappen | 6.5, 6.6 |
-| Panorama | Passepartout über die volle Breite, schwebende Zoomknöpfe und Hinweis | 6.7 |
+| Panorama | Passepartout über die volle Breite, schwebende Zoomknöpfe und Hinweis | 6.7, [PANORAMA.md](PANORAMA.md) |
 | Wanderung (geplant) | Passepartout über die volle Breite, Kennzahlen, Schalter, Marken, Auswahlring, schwebende Knöpfe, Wanderungsfarben, Pille zum Aufklappen | [WANDERUNG.md](WANDERUNG.md) |
 
 ## 9. Checkliste für ein neues Teil
