@@ -22,14 +22,13 @@ Der Bau setzt beides zu **einer** HTML-Datei zusammen, in der alles eingebettet 
 - **Rumpfseite plus Widgets:** Die Rumpfseite bindet die Widgets ein. Der Bau fügt Rumpfseite und die
   benötigten Web Components zu einer Datei zusammen.
 - **Nur verwendete Widgets:** In die Datei kommen nur die Widgets, die die `album.toml` tatsächlich benutzt.
-- **Daten als JSON:** Die Rumpfseite enthält die Daten des Albums als JSON. Die Web Components lesen sie als
-  Eingabe und rendern daraus ihre Darstellung.
-- **Eingabe nur als JSON im Element:** Ein Widget bekommt seine Daten ausschließlich als JSON in seinem
-  Element (z. B. `<script type="application/json">` als Kind). Die Daten des Albums sind also auf die
-  Widget-Elemente der Rumpfseite verteilt. Nachladen per Adresse (`src="…"`) gibt es nicht, auch nicht auf
-  fremden Seiten.
-- **Keine Kacheln vom Server:** Auch auf fremden Seiten lädt ein Widget keine Kacheln nach; sie stecken in
-  seinen Daten (G1 gilt auch für isoliert eingebundene Widgets).
+- **Ein JSON-Block mit allen Daten:** `fotoalbum.py` schreibt in die Rumpfseite einen einzigen JSON-Block
+  mit allen Daten des Albums (Abschnitt 3.5).
+- **Eingabe per Eigenschaft:** Ein kleines Skript der Rumpfseite übergibt jeder Component ihren Ausschnitt
+  dieses JSON über eine Eigenschaft des Elements (z. B. `element.daten = …`). Das ist die einzige
+  Eingabe einer Component, im Album wie auf fremden Seiten. Nachladen per Adresse (`src="…"`) gibt es nicht.
+- **Keine Kacheln vom Server:** Auch auf fremden Seiten lädt ein Widget keine Kacheln nach; sie sind
+  eingebettet wie die Bilder (G1 gilt auch für isoliert eingebundene Widgets).
 - **Shadow DOM:** Jede Component kapselt ihre Darstellung im Shadow DOM. Farben kommen über CSS-Variablen
   hinein, so dass Hell/Dunkel von außen gesteuert wird.
 - **Schrift von außen festlegbar:** Jedes Widget bietet eine Schnittstelle, über die man von außen die Schrift
@@ -50,8 +49,9 @@ Der Bau setzt beides zu **einer** HTML-Datei zusammen, in der alles eingebettet 
   Widgets.
 - **Die Großansicht ist eine eigene Component.** Andere Widgets (Raster, Wanderung, …) rufen sie auf.
 - **Widgets reden über Ereignisse miteinander** (Abschnitt 3.3), nicht über direkte Aufrufe.
-- **Bilddaten stehen im HTML der Grundansicht, das JSON verweist darauf** (Abschnitt 3.4). Das gilt auch
-  für Bilder, die nicht im Raster vorkommen.
+- **Eingebettete Daten nach Bedarf der Grundansicht** (Abschnitt 3.4): Was die Ansicht ohne JavaScript
+  braucht, steht als `<img>` im HTML; alles andere (weitere Bilder, Panoramen in voller Auflösung, Kacheln)
+  steht in `<script>`-Blöcken am Ende der Datei. Das JSON verweist in beiden Fällen per `id` darauf.
 - **Die Wanderung ist von Anfang an eine Web Component.** Sie soll so gebaut sein, dass man sie auch
   isoliert auf einer beliebigen anderen Website einbinden kann.
 - **G2 entfällt.** Die Seite muss ohne JavaScript nicht mehr vollständig nutzbar sein. An die Stelle von G2
@@ -75,10 +75,11 @@ album.toml ──► fotoalbum.py ───────────────�
                │ prüft die Konfiguration                    ┌──────────────────────────────┐
                │ verarbeitet Bilder, Kacheln, GPX ...       │ Rumpf: Schrift, Hell/Dunkel,  │
                │                                            │   Kopf, Fuß                   │
-               │ erzeugt die Daten als JSON          ──────►│ Daten (JSON)                  │
+               │ erzeugt die Daten als JSON          ──────►│ ein JSON-Block, Übergabeskript│
                │ erzeugt Kopf, Fuß, Raster und        ──────►│ Grundansicht als HTML         │
                │   Großansicht als fertiges HTML             │   (Kopf, Fuß, Raster, Bilder) │
-               └ wählt die benutzten Web Components  ──────►│ Code der benutzten Components │
+               │ wählt die benutzten Web Components  ──────►│ Code der benutzten Components │
+               └ bettet übrige Bilder und Kacheln ein ──────►│ <script>-Blöcke am Ende       │
                                                             └──────────────────────────────┘
 ```
 
@@ -137,21 +138,35 @@ Grenzen gegenüber der Großansicht mit JavaScript:
 - Folge für fremde Seiten: Eine isoliert eingebundene Wanderung braucht die Großansicht-Component mit. Ohne
   sie hat „Großansicht öffnen" keinen Empfänger.
 
-### 3.4 Bilddaten
+### 3.4 Eingebettete Bilder und Kacheln
 
-- Jedes Bild ist genau einmal eingebettet, und zwar im HTML der Grundansicht:
-  - Vorschauen im `<img>` des Rasters,
-  - große Bilder im `<img loading="lazy">` der Großansicht ohne JavaScript (3.1),
-  - Bilder, die nicht im Raster vorkommen (z. B. nur in einer Wanderung, SPEC 9.6), ebenfalls im HTML,
-    aber ohne JavaScript unsichtbar und nicht geladen. Vorschlag: in einem `<template>`-Element; dessen
-    Inhalt lädt der Browser nicht, JavaScript kann ihn aber lesen.
-- Das JSON eines Widgets nennt die Bilder, die es zeigt, mit Unterschrift, Datum und Maßen und verweist per
-  Kennung auf die Bilddaten im HTML (z. B. die `id` eines `<img>`). Eine zentrale Bildtabelle für alle Widgets
-  gibt es nicht, weil jedes Widget nur sein eigenes JSON liest (Abschnitt 2). Die Großansicht bekommt die
-  Kennungen mit dem Ereignis „Großansicht öffnen" (3.3).
-- Auf einer fremden Seite gibt es diese Grundansicht nicht. Da ein Widget nichts nachlädt (Abschnitt 2),
-  müssen seine Bilder dort im Element selbst stecken, etwa als `<img>` oder `<template>` neben dem JSON.
-  Die genaue Form ist bei der Umsetzung festzulegen.
+Jedes Bild und jede Kachel ist genau einmal in der Datei, an einer von zwei Stellen:
+
+- **Als `<img>` in der Grundansicht**, was die Ansicht ohne JavaScript braucht:
+  - Vorschauen der Galerie im `<img>` des Rasters (bei Panoramen der flache Streifen),
+  - große Bilder der Galerie im `<img loading="lazy">` der Großansicht ohne JavaScript (3.1).
+- **In `<script>`-Blöcken am Ende der Datei**, alles andere, z. B.
+  `<script type="application/octet-stream" id="…">…Base64…</script>`:
+  - Bilder, die nicht in der Galerie stehen (z. B. nur in einer Wanderung, SPEC 9.6),
+  - Panoramen in voller Auflösung,
+  - Kacheln von Karte und Wanderung.
+
+  Der Browser führt diese Blöcke nicht aus und zeigt sie nicht an. `fotoalbum.py` schreibt sie direkt in die
+  Datei, ohne sie im Speicher zusammenzusetzen.
+- Das JSON verweist auf beide Arten nur per `id`. Ob dahinter ein `<img>` oder ein `<script>` steht, löst eine
+  gemeinsame kleine Hilfsfunktion auf, die die Components benutzen.
+- Die Großansicht bekommt die Kennungen der Bilder mit dem Ereignis „Großansicht öffnen" (3.3).
+- Auf einer fremden Seite stehen die referenzierten `<script>`-Blöcke (oder `<img>`) auf der einbindenden
+  Seite; die Component findet sie dort per `id` wie im Album.
+
+### 3.5 JSON-Block und Übergabe
+
+- `fotoalbum.py` schreibt einen JSON-Block mit allen Daten in die Rumpfseite, z. B.
+  `<script type="application/json" id="album-daten">`. Er enthält keine Bilddaten, nur Verweise (3.4).
+- Ein kleines Skript der Rumpfseite liest den Block und übergibt jeder Component ihren Ausschnitt über eine
+  Eigenschaft (z. B. `element.daten`). Die Daten stehen so nur einmal in der Datei.
+- Die Eigenschaft ist die Eingabe-Schnittstelle der Component. Auf einer fremden Seite setzt die einbindende
+  Seite sie selbst; ein JSON als Kind des Elements gibt es nicht (Entscheidung des Nutzers).
 
 ## 4. Die Widgets
 
@@ -220,7 +235,8 @@ folgt:
 - Sie bringt alles mit, was sie selbst braucht, und hängt nicht von CSS oder JavaScript der Rumpfseite ab.
 - Ihre Eingabe ist ein festgelegtes, dokumentiertes Datenformat. Dieses Format ist eine Schnittstelle und
   braucht eine Versionsangabe.
-- **Daten und Kacheln** stecken als JSON im Element; nachgeladen wird nichts (Abschnitt 2). Bilder siehe 3.4.
+- **Daten** bekommt die Component über ihre Eigenschaft (3.5); Bilder und Kacheln stehen per `id` auf der
+  Seite (3.4). Nachgeladen wird nichts.
 - **Aussehen:** Shadow DOM; Farben über CSS-Variablen, Hell/Dunkel steuert die einbindende Seite.
 - **Schrift:** über die Schnittstelle des Widgets von außen festlegbar. Im Album ist es die eingebettete
   Schrift der Rumpfseite. Auf einer fremden Seite ohne eigene Festlegung erbt das Widget deren Schrift.
@@ -282,8 +298,9 @@ zwischen den Widgets. Siehe 2 und 3.3.
 
 ### 8.2 Bilder
 
-*Entschieden:* Bilddaten im HTML der Grundansicht, auch die, die nicht im Raster vorkommen; das JSON verweist
-darauf. Siehe 2 und 3.4.
+*Entschieden:* Was die Ansicht ohne JavaScript braucht, steht als `<img>` im HTML; alles andere in
+`<script>`-Blöcken am Ende der Datei. Ein JSON-Block mit allen Daten verweist per `id` darauf. Siehe 2, 3.4,
+3.5. (Ersetzt einen früheren Stand mit `<template>` und JSON je Element.)
 
 ### 8.3 Grundansicht erzeugen
 
@@ -293,7 +310,7 @@ JavaScript erscheint nur, wenn das Album mehr als Fotos enthält. Siehe 2, 3.1, 
 
 ### 8.4 Widgets auf fremden Seiten
 
-*Entschieden:* Daten nur als JSON im Element, kein Nachladen; keine Kacheln vom Server; Shadow DOM mit Farben
+*Entschieden:* Daten nur über die Eigenschaft der Component (3.5), kein Nachladen; keine Kacheln vom Server; Shadow DOM mit Farben
 über CSS-Variablen; Schrift von außen festlegbar, im Album die eingebettete Schrift. Siehe 2 und 6.
 
 ### 8.5 Arbeitsteilung
@@ -326,7 +343,7 @@ Keine Grundsatzfragen mehr, sondern Einzelheiten, die mit dem jeweiligen Widget 
 
 - Namen und Daten der Ereignisse (3.3)
 - Aufbau des JSON je Widget samt Versionsangabe, Einheiten und Formate der Rohwerte (5, 6)
-- Form der Bilder im Element auf fremden Seiten (3.4)
+- Name der Eingabe-Eigenschaft, `id`-Schema und Typ der `<script>`-Blöcke (3.4, 3.5)
 - Name und Art der Schnittstelle für die Schrift (6)
 - ob Rumpf und Schrift eigene Dateien werden (5.1)
 - Wortlaut und Aussehen des Hinweises ohne JavaScript (3.2)
@@ -340,8 +357,8 @@ Keine Grundsatzfragen mehr, sondern Einzelheiten, die mit dem jeweiligen Widget 
 - WANDERUNG.md: 13.1 widerspricht G2′ (dort Abschnittskopf und Kennzahlen ohne JavaScript, künftig nichts);
   13.1 und 13.4 an G2′ und die Component anpassen.
 - README.md: Voraussetzungen und Aufbau; das Werkzeug besteht künftig aus `fotoalbum.py` und `widgets/`.
-- SPEC.md 9.6: Die dort beschriebene Einbettung (Vorschauen im `<img>` des Rasters, eigener Datenblock für
-  Bilder außerhalb des Rasters) wird durch 3.4 ersetzt.
+- SPEC.md 9.6: Die dort beschriebene Einbettung wird durch 3.4 präzisiert (Vorschauen und große Bilder der
+  Galerie als `<img>`, Bilder außerhalb der Galerie in `<script>`-Blöcken).
 - AGENTS.md, Abschnitt Git: Testdaten der Components werden eingecheckt (bisher verboten), sofern sie
   synthetisch sind oder die Bergfex-Referenz; erzeugte Alben bleiben draußen.
 
