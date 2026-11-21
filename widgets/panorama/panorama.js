@@ -1,5 +1,5 @@
 /* ── <album-panorama>: zylindrisches Panorama per WebGL entzerrt (geradlinig) anzeigen, schwenkbar ──
-   Beschreibung: SPEC.md 6.7, Architektur: ARCHITEKTUR.md.
+   Beschreibung: PANORAMA.md, Architektur: ARCHITEKTUR.md.
 
    Eingabe:  element.daten = {version: 1, bild: "<id>", breite: <px>, hoehe: <px>, bildwinkel: <Grad>}
              bild verweist per id auf das Panorama in voller Auflösung (AlbumEinbettung, einbettung.js).

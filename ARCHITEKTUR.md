@@ -182,7 +182,7 @@ Bisherige Teile und was aus ihnen wird:
 | Großansicht | 6.3 | Component | nicht vorhanden | einfach, per `:target` (3.1) |
 | Stationen | 6.4, 6.5 | Component | vollständig, einklappbar | nichts |
 | Karte mit Wegpunkten | 6.5, 6.6 | Component | vollständig, einklappbar | nichts |
-| Panorama | 6.7 | Component | flacher Streifen | gewöhnliches Foto im Raster, ohne Großansicht |
+| Panorama | 6.7, PANORAMA.md | Component | flacher Streifen | gewöhnliches Foto im Raster, ohne Großansicht |
 | Wanderung (geplant) | WANDERUNG.md | Component | Abschnittskopf und Kennzahlen (WANDERUNG 13.1) | nichts |
 
 ## 5. Bau

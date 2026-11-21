@@ -136,43 +136,12 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
 
 ### 6.7 Panorama
 
-- Unterstützt wird genau ein Fall: Gerät hochkant, seitwärts geschwenkt. Quer gehaltene und senkrecht
-  geschwenkte Panoramen sind bewusst nicht vorgesehen (Entscheidung des Nutzers).
-- Annahme: zylindrische Projektion. Breite = f·θ, Höhe = 2·f·tan(v/2) ⇒ Schwenkwinkel
-  θ = (Breite/Höhe)·2·tan(v/2), begrenzt auf 360°.
-- Senkrechter Bildwinkel v, Reihenfolge: `panorama_bildwinkel` am Bild → EXIF → `[einstellungen]`.
-  `init` schreibt den aus EXIF berechneten Wert als aktive Zeile in den `[[bild]]`-Block; ohne Brennweite
-  im EXIF steht dort nur ein auskommentierter Hinweis.
-  EXIF-Formel: v = 2·atan(`PANO_BESCHNITT` · 17,31 / f35) mit f35 = Kleinbild-Brennweite (EXIF-Tag 41989),
-  17,31 mm = halbe lange Seite eines 4:3-Bildes bei Kleinbild-Diagonale, `PANO_BESCHNITT` = 0,77.
-- Umsetzung als Web Component `<album-panorama>` in `widgets/panorama/panorama.js` (ARCHITEKTUR.md).
-  Eingabe ist die Eigenschaft `daten` = `{version: 1, bild: "pano-N", breite, hoehe, bildwinkel}`; das
-  Übergabeskript der Seite setzt sie aus dem JSON-Block `album-daten` (Schlüssel im Attribut `data-daten`).
-  Die Component ersetzt den flachen Streifen per Shadow DOM, sobald WebGL läuft. Farben über
-  `--nav-bg`/`--nav-shadow`, Schrift über `--album-schrift`. Testseite: `widgets/panorama/testseite.py`.
-- Darstellung: WebGL-Fragment-Shader rechnet pro Pixel den Sichtstrahl einer geradlinigen Kamera
-  (Gieren, Nicken, Zoom) auf Zylinderkoordinaten um. WebGL2 mit Mipmaps, sonst WebGL1.
-- Widget spannt alle Rasterspalten (`grid-column: 1 / -1`); Seitenverhältnis 2,2 am Desktop, 1,4 am Handy.
-- Bedienung: Ziehen schwenkt; Plus/Minus, Doppelklick und Zwei-Finger-Geste zoomen (bis 4×).
-- Touch: Das Panorama nimmt alle Gesten selbst entgegen (`touch-action: none`, Touch-Ereignisse) und
-  entscheidet selbst; dem Browser überlassen (`pan-y`), übernimmt Safari (iOS) leicht senkrechte Gesten und das
-  Schwenken hakt. Unvergrößert entscheiden die ersten 8 px: waagerecht -> die ganze Geste schwenkt, auch nach
-  einem Richtungswechsel; senkrecht -> das Panorama scrollt die Seite selbst, mit Nachlauf. Vergrößert schwenkt
-  und neigt jede Geste. Nach dem Loslassen laufen Schwenken und (vergrößert) Neigen mit abnehmender
-  Geschwindigkeit nach und halten am Bildrand an; hat der Finger vor dem Loslassen stillgestanden, gibt es
-  keinen Nachlauf. Ein neuer Finger hält den Nachlauf an. Zwei Finger zoomen; die eigene Zoomgeste von Safari ist auf dem Panorama unterdrückt.
-  Folge: Auf einer fremden Seite scrollt senkrechtes Wischen über dem Panorama immer das Fenster, nicht einen
-  umgebenden Scrollbereich.
-- Der Ausschnitt bleibt immer innerhalb des Bildes (Grenzen für Gieren, Nicken und Mindestzoom).
-- Auflösung: Breite ≤ `panorama_breite` (8192 px, reicht laut Nutzer). Ist das Bild breiter als
-  `MAX_TEXTURE_SIZE` des Geräts, wird es im Browser vorher verkleinert.
-- Ressourcen: Das Widget startet erst, wenn es in die Nähe des Sichtbereichs kommt (600 px Vorlauf), gibt
-  seinen Grafikkontext außerhalb davon frei und baut ihn beim Zurückscrollen neu auf. Ein vom Browser
-  entzogener Kontext wird ebenso neu aufgebaut. Schwenk und Zoom bleiben dabei erhalten.
-- Ohne JavaScript oder WebGL bleibt das Panorama als flacher Streifen sichtbar.
-- Panoramen sind nicht Teil der Großansicht, nicht bildschirmfüllend zu öffnen und haben kein „Speichern"
-  (Entscheidung des Nutzers, „erstmal").
-- Panoramen sind immer eingebettet, auch im späteren `--self-contained`-Modus.
+Vollständig beschrieben in [PANORAMA.md](PANORAMA.md): Konfiguration, Aufbereitung, Darstellung, Bedienung
+(Maus und Finger), Schnittstelle der Web Component `<album-panorama>` und Prüfen. Kurz:
+
+- Hochkant aufgenommene, seitwärts geschwenkte Panoramen (zylindrische Projektion) werden per WebGL entzerrt
+  und lassen sich schwenken, neigen und zoomen; über die volle Breite des Rasters.
+- Ohne JavaScript oder WebGL steht ein flacher Streifen im Raster. Panoramen sind nicht Teil der Großansicht.
 
 ## 7. Entscheidungen mit Begründung
 
