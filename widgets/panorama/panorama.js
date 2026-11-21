@@ -1,0 +1,178 @@
+/* ── <album-panorama>: zylindrisches Panorama per WebGL entzerrt (geradlinig) anzeigen, schwenkbar ──
+   Beschreibung: SPEC.md 6.7, Architektur: ARCHITEKTUR.md.
+
+   Eingabe:  element.daten = {version: 1, bild: "<id>", breite: <px>, hoehe: <px>, bildwinkel: <Grad>}
+             bild verweist per id auf das Panorama in voller Auflösung (AlbumEinbettung, einbettung.js).
+   Inhalt:   Ein <img> als Kind des Elements ist die Ansicht ohne JavaScript oder WebGL (flacher Streifen).
+             Sobald das Widget läuft, ersetzt sein Shadow DOM diese Ansicht.
+   Aussehen: Farben über die CSS-Variablen --nav-bg, --nav-shadow (und color); Schrift über
+             --album-schrift (Standard: die Schrift der Seite).
+   Ereignisse: keine. */
+(function(){
+"use strict";
+if(!window.customElements||customElements.get("album-panorama"))return;
+
+var VS="attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}";
+var FS="precision highp float;uniform sampler2D t;uniform vec2 res;uniform float yaw,pitch,tanv,theta,tanp,rund;"+
+"void main(){vec2 p=gl_FragCoord.xy/res*2.-1.;vec3 d=vec3(p.x*tanv*res.x/res.y,p.y*tanv,1.);"+
+"float c=cos(pitch),s=sin(pitch);d=vec3(d.x,d.y*c+d.z*s,d.z*c-d.y*s);"+
+"float u=(atan(d.x,d.z)+yaw)/theta+.5;if(rund>.5)u=fract(u);"+
+"gl_FragColor=texture2D(t,vec2(u,.5-d.y/length(d.xz)/(2.*tanp)));}";
+var SVG='<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+var CSS=":host{display:block;position:relative;overflow:hidden;font-family:var(--album-schrift,inherit)}"+
+":host([aktiv]){aspect-ratio:2.2}"+
+"canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none}"+
+"canvas.zieht{cursor:grabbing}"+
+"button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}"+
+"button:focus-visible{outline:2px solid currentColor;outline-offset:3px}"+
+".zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:8px}"+
+".zoom button{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--nav-bg);box-shadow:var(--nav-shadow);border:none;border-radius:999px;padding:0}"+
+".zoom button[disabled]{opacity:.35;cursor:default}"+
+".hinweis{position:absolute;left:12px;bottom:12px;height:44px;display:flex;align-items:center;gap:8px;font-size:14px;background:var(--nav-bg);box-shadow:var(--nav-shadow);padding:0 16px;border-radius:999px;pointer-events:none;transition:opacity .4s}"+
+".hinweis.weg{opacity:0}"+
+"@media (max-width:700px){:host([aktiv]){aspect-ratio:1.4}.hinweis{font-size:13px;padding:0 12px}}";
+
+class AlbumPanorama extends HTMLElement{
+  constructor(){
+    super();
+    this._daten=null;this._gestartet=false;
+    /* Solange das Widget nicht läuft, zeigt der Slot den flachen Streifen aus dem Element. */
+    this.attachShadow({mode:"open"}).innerHTML="<style>"+CSS+"</style><slot></slot>";
+  }
+  get daten(){return this._daten}
+  set daten(d){this._daten=d;this._vorbereiten()}
+  connectedCallback(){
+    /* Eigenschaft, die vor dem Laden dieser Datei gesetzt wurde, übernehmen */
+    if(Object.prototype.hasOwnProperty.call(this,"daten")){var d=this.daten;delete this.daten;this.daten=d}
+    this._vorbereiten();
+  }
+  _vorbereiten(){
+    if(this._wartet||this._gestartet||!this._daten||!this.isConnected)return;
+    this._wartet=true;
+    var el=this;
+    /* erst starten, wenn das Panorama in die Nähe des Sichtbereichs kommt */
+    if(window.IntersectionObserver){
+      var io=new IntersectionObserver(function(es){
+        if(es.some(function(e){return e.isIntersecting})){io.disconnect();el._laden()}
+      },{rootMargin:"600px 0px"});
+      io.observe(this);
+    }else this._laden();
+  }
+  _laden(){
+    var el=this,d=this._daten,url=window.AlbumEinbettung&&AlbumEinbettung.bildUrl(d.bild);
+    if(!url)return; /* ohne Bilddaten bleibt das flache Bild stehen */
+    var img=new Image();
+    img.onload=function(){if(el._gestartet)return;el._gestartet=true;try{starten(el,img,d)}catch(e){}};
+    img.src=url;
+  }
+}
+
+function starten(host,img,daten){
+  var W=img.naturalWidth,H=img.naturalHeight;if(!W||!H)return;
+  var cv=document.createElement("canvas"),gl=null,zwei=false,U={},bereit=false;
+  try{gl=cv.getContext("webgl2");zwei=!!gl;if(!gl)gl=cv.getContext("webgl")||cv.getContext("experimental-webgl")}catch(e){}
+  if(!gl)return; /* ohne WebGL bleibt das flache Bild stehen */
+
+  /* Programm und Textur anlegen; läuft beim Start und nach jedem wiederhergestellten Grafikkontext */
+  function aufbauen(){
+    bereit=false;
+    function shader(typ,src){var s=gl.createShader(typ);gl.shaderSource(s,src);gl.compileShader(s);return s}
+    var pr=gl.createProgram();gl.attachShader(pr,shader(gl.VERTEX_SHADER,VS));gl.attachShader(pr,shader(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);
+    if(!gl.getProgramParameter(pr,gl.LINK_STATUS))return false;
+    gl.useProgram(pr);
+    gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+    var a=gl.getAttribLocation(pr,"a");gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
+    /* Textur: bei Bedarf auf die Grenze der Grafikkarte verkleinern */
+    var max=gl.getParameter(gl.MAX_TEXTURE_SIZE),quelle=img;
+    if(W>max){var k=document.createElement("canvas");k.width=max;k.height=Math.max(1,Math.round(H*max/W));k.getContext("2d").drawImage(img,0,0,k.width,k.height);quelle=k}
+    gl.bindTexture(gl.TEXTURE_2D,gl.createTexture());
+    try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,quelle)}catch(e){return false}
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    if(zwei){gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR)}
+    else gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    ["res","yaw","pitch","tanv","theta","tanp","rund"].forEach(function(n){U[n]=gl.getUniformLocation(pr,n)});
+    bereit=true;return true;
+  }
+  if(!aufbauen())return;
+
+  /* Geometrie: Zylinderprojektion, Breite = f*theta, Höhe = 2*f*tan(Bildwinkel/2) */
+  var pv=(parseFloat(daten.bildwinkel)||54)*Math.PI/180,tanp=Math.tan(pv/2);
+  var theta=W/H*2*tanp,rund=theta>=2*Math.PI-.02;if(theta>2*Math.PI)theta=2*Math.PI;
+  var yaw=0,pitch=0,zoom=1,zoomMin=1,ZOOM_MAX=4,bw=1,bh=1;
+
+  /* Shadow DOM: Streifen (Slot) durch Fläche und Bedienelemente ersetzen */
+  var sr=host.shadowRoot,slot=sr.querySelector("slot");if(slot)slot.remove();
+  sr.appendChild(cv);
+  var zb=document.createElement("div");zb.className="zoom";
+  zb.innerHTML='<button type="button" aria-label="Verkleinern">'+SVG+'<path d="M5 12h14"/></svg></button><button type="button" aria-label="Vergrößern">'+SVG+'<path d="M5 12h14M12 5v14"/></svg></button>';
+  var hinweis=document.createElement("div");hinweis.className="hinweis";
+  hinweis.innerHTML=SVG+'<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M3 12h18"/></svg><span>Ziehen zum Umsehen</span>';
+  sr.appendChild(hinweis);sr.appendChild(zb);host.setAttribute("aktiv","");
+  var minus=zb.children[0],plus=zb.children[1];
+
+  function grenzen(){
+    var asp=bw/bh;
+    zoomMin=1;if(!rund&&theta<Math.PI){zoomMin=Math.max(1,asp*tanp/Math.tan(theta/2))}
+    zoom=Math.min(ZOOM_MAX,Math.max(zoomMin,zoom));
+    var tv=tanp/zoom,pl=Math.max(0,pv/2-Math.atan(tv));pitch=Math.min(pl,Math.max(-pl,pitch));
+    if(!rund){
+      var x=tv*asp,c=Math.cos(pitch),s=Math.abs(Math.sin(pitch)),n=c-tv*s;
+      var halb=n>1e-3?Math.atan(x/n):Math.PI/2,yl=Math.max(0,theta/2-halb);
+      yaw=Math.min(yl,Math.max(-yl,yaw));
+    }
+    minus.disabled=zoom<=zoomMin+1e-6;plus.disabled=zoom>=ZOOM_MAX-1e-6;
+    return tv;
+  }
+  function zeichne(){
+    var r=host.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+    bw=Math.max(1,r.width);bh=Math.max(1,r.height);
+    var w=Math.round(bw*dpr),h=Math.round(bh*dpr);
+    if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}
+    var tv=grenzen();
+    if(!bereit||gl.isContextLost())return;
+    gl.viewport(0,0,w,h);
+    gl.uniform2f(U.res,w,h);gl.uniform1f(U.yaw,yaw);gl.uniform1f(U.pitch,pitch);gl.uniform1f(U.tanv,tv);
+    gl.uniform1f(U.theta,theta);gl.uniform1f(U.tanp,tanp);gl.uniform1f(U.rund,rund?1:0);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+  }
+  var wartet=false;function neu(){if(wartet)return;wartet=true;requestAnimationFrame(function(){wartet=false;zeichne()})}
+
+  /* Zeiger: ein Finger/Maus schwenkt, zwei Finger zoomen */
+  var zeiger={},anzahl=0,abstand=0;
+  function zweiAbstand(){var k=Object.keys(zeiger);if(k.length<2)return 0;var a=zeiger[k[0]],b=zeiger[k[1]];return Math.hypot(a.x-b.x,a.y-b.y)}
+  cv.addEventListener("pointerdown",function(e){
+    zeiger[e.pointerId]={x:e.clientX,y:e.clientY};anzahl=Object.keys(zeiger).length;abstand=zweiAbstand();
+    cv.classList.add("zieht");hinweis.classList.add("weg");try{cv.setPointerCapture(e.pointerId)}catch(x){}
+  });
+  cv.addEventListener("pointermove",function(e){
+    var z=zeiger[e.pointerId];if(!z)return;var dx=e.clientX-z.x,dy=e.clientY-z.y;z.x=e.clientX;z.y=e.clientY;
+    if(anzahl>=2){var d=zweiAbstand();if(abstand>0&&d>0)zoom*=d/abstand;abstand=d;neu();return}
+    var tv=tanp/zoom;
+    yaw-=dx*2*tv*(bw/bh)/bw;
+    if(e.pointerType!=="touch")pitch+=dy*2*tv/bh; /* am Handy bleibt senkrechtes Wischen das Scrollen der Seite */
+    neu();
+  });
+  function ende(e){delete zeiger[e.pointerId];anzahl=Object.keys(zeiger).length;abstand=zweiAbstand();if(!anzahl)cv.classList.remove("zieht")}
+  cv.addEventListener("pointerup",ende);cv.addEventListener("pointercancel",ende);
+  cv.addEventListener("dblclick",function(){zoom=zoom>zoomMin*1.2?zoomMin:zoomMin*2;neu()});
+  plus.addEventListener("click",function(){zoom*=1.5;neu()});
+  minus.addEventListener("click",function(){zoom/=1.5;neu()});
+
+  /* Grafikkontext: Verlust abfangen und neu aufbauen (am Handy bei Speicherdruck üblich) */
+  cv.addEventListener("webglcontextlost",function(e){e.preventDefault();bereit=false});
+  cv.addEventListener("webglcontextrestored",function(){if(aufbauen())zeichne()});
+  /* Browser erlauben nur wenige WebGL-Flächen gleichzeitig: außerhalb des Sichtbereichs freigeben */
+  var ext=gl.getExtension("WEBGL_lose_context");
+  if(ext&&window.IntersectionObserver){
+    new IntersectionObserver(function(es){
+      var sichtbar=es[es.length-1].isIntersecting;
+      try{if(sichtbar&&gl.isContextLost())ext.restoreContext();else if(!sichtbar&&!gl.isContextLost())ext.loseContext()}catch(e){}
+    },{rootMargin:"600px 0px"}).observe(host);
+  }
+  if(window.ResizeObserver)new ResizeObserver(neu).observe(host);else window.addEventListener("resize",neu);
+  zeichne();
+}
+
+customElements.define("album-panorama",AlbumPanorama);
+})();

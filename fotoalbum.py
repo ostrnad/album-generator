@@ -44,7 +44,7 @@ try:
 except ModuleNotFoundError:
     HEIF_OK = False
 
-VERSION = "1.5"
+VERSION = "1.6"
 CONFIG_NAME = "album.toml"
 JPEG_EXT = {".jpg", ".jpeg"}
 HEIC_EXT = {".heic", ".heif"}
@@ -62,6 +62,8 @@ DEFAULTS = {
 }
 PANO_BESCHNITT = 0.77  # Anteil der Sensorhöhe, der im fertigen Panorama übrig bleibt (Schätzung, ergibt 54° bei 26 mm)
 PANORAMA_AB = 2.2  # init: Bilder, die mindestens so viel breiter als hoch sind, werden als Panorama vorgeschlagen
+PANO_VORSCHAU_BREITE = 2560  # Breite des flachen Streifens im Raster (Ansicht ohne JavaScript oder WebGL)
+WIDGETS = Path(__file__).resolve().parent / "widgets"  # Web Components (ARCHITEKTUR.md 5.1)
 KARTE_DEFAULTS = {
     "anzeigen": True,
     "art": "route",            # "route" = Wegpunkte mit Linie verbunden, "punkte" = einzelne Wegpunkte
@@ -350,7 +352,9 @@ def bild_verarbeiten(pfad: Path, cfg: dict, pano: bool = False) -> dict:
             buf = io.BytesIO()
             im.save(buf, "JPEG", quality=cfg["qualitaet_vollbild"], optimize=True, progressive=True,
                     **({"icc_profile": icc} if icc else {}))
-            return {"w": im.size[0], "h": im.size[1], "pano": base64.b64encode(buf.getvalue()).decode("ascii")}
+            vorschau, vw, vh = jpeg_bytes(im, PANO_VORSCHAU_BREITE, cfg["qualitaet_vorschau"], icc)
+            return {"w": im.size[0], "h": im.size[1], "pano": base64.b64encode(buf.getvalue()).decode("ascii"),
+                    "vorschau": base64.b64encode(vorschau).decode("ascii"), "vw": vw, "vh": vh}
         voll, w, h = jpeg_bytes(im, cfg["vollbild"], cfg["qualitaet_vollbild"], icc)
         gross, gw, _ = jpeg_bytes(im, cfg["vorschau_gross"], cfg["qualitaet_vorschau"], icc)
         klein, kw, _ = jpeg_bytes(im, cfg["vorschau_klein"], cfg["qualitaet_vorschau"], icc)
@@ -629,16 +633,20 @@ def cmd_build(args) -> None:
     # ── HTML zusammensetzen ──
     esc = html.escape
     figuren, daten = [], []
+    widget_daten: dict[str, dict] = {}   # Ausschnitte des JSON-Blocks, je Widget-Element (ARCHITEKTUR.md 3.5)
+    komponenten: list[str] = []
     i = -1
     for nr, e in enumerate(eintraege):
         w, h = e["w"], e["h"]
         if e["panorama"]:
-            alt = e["unterschrift"] or f"Panorama {nr + 1}"
-            cap = f'<figcaption>{esc(e["unterschrift"])}</figcaption>' if e["unterschrift"] else ""
-            figuren.append(
-                f'<figure class="pano"><div class="pano-mat"><div class="pano-view" data-bildwinkel="{float(e["bildwinkel"]):g}">'
-                f'<img alt="{esc(alt, quote=True)}" width="{w}" height="{h}" decoding="async" '
-                f'src="data:image/jpeg;base64,{e["pano"]}"></div></div>{cap}</figure>')
+            k = sum(1 for x in eintraege[:nr] if x["panorama"]) + 1
+            figuren.append(panorama_figur(f"panorama-{k}", e["vorschau"], e["vw"], e["vh"],
+                                          e["unterschrift"] or f"Panorama {nr + 1}", e["unterschrift"]))
+            daten.append(eingebettet(f"pano-{k}", e["pano"]))
+            widget_daten[f"panorama-{k}"] = {"version": 1, "bild": f"pano-{k}", "breite": w, "hoehe": h,
+                                             "bildwinkel": float(e["bildwinkel"])}
+            if "panorama" not in komponenten:
+                komponenten.append("panorama")
             continue
         i += 1
         breite = 100 if w >= h else round(100 * w / h, 2)   # Bild sitzt mittig im quadratischen Passepartout
@@ -669,7 +677,8 @@ def cmd_build(args) -> None:
              .replace("%%CSS%%", CSS.replace("%%FONT400%%", FONT_400).replace("%%FONT600%%", FONT_600)
                       .replace("%%DARK_AUTO%%", dark_css(":root:not([data-theme=light])"))
                       .replace("%%DARK_SET%%", dark_css(":root[data-theme=dark]")))
-             .replace("%%JS%%", JS + (JS_PANO if any(e["panorama"] for e in eintraege) else ""))
+             .replace("%%JS%%", JS + komponenten_js(komponenten) + (UEBERGABE_JS if komponenten else ""))
+             .replace("%%WIDGETDATEN%%", widget_daten_json(widget_daten) if komponenten else "")
              .replace("%%TITEL%%", esc(titel))
              .replace("%%KOPF%%", kopf)
              .replace("%%STATIONEN%%", stationen)
@@ -690,6 +699,55 @@ def cmd_build(args) -> None:
     if groesse > 250_000_000:
         print("Hinweis: Die Datei ist sehr groß; auf Handys kann das Öffnen dauern oder scheitern.\n"
               "         Kleiner wird sie mit einem niedrigeren Wert für 'vollbild' oder 'qualitaet_vollbild'.")
+
+
+def eingebettet(kennung: str, b64: str, typ: str = "image/jpeg") -> str:
+    """<script>-Block für eingebettete Bilder und Kacheln, die die Grundansicht nicht braucht (ARCHITEKTUR.md 3.4)."""
+    return f'<script type="application/octet-stream" data-typ="{typ}" id="{kennung}">{b64}</script>'
+
+
+def panorama_figur(schluessel: str, vorschau_b64: str, vw: int, vh: int, alt: str, unterschrift: str) -> str:
+    """Panorama im Raster: <album-panorama> mit dem flachen Streifen als Ansicht ohne JavaScript."""
+    esc = html.escape
+    cap = f"<figcaption>{esc(unterschrift)}</figcaption>" if unterschrift else ""
+    return (f'<figure class="pano"><div class="pano-mat"><album-panorama data-daten="{esc(schluessel, quote=True)}">'
+            f'<img alt="{esc(alt, quote=True)}" width="{vw}" height="{vh}" decoding="async" '
+            f'src="data:image/jpeg;base64,{vorschau_b64}"></album-panorama></div>{cap}</figure>')
+
+
+def widget_daten_json(widget_daten: dict) -> str:
+    """Der JSON-Block mit den Daten aller Widgets (ARCHITEKTUR.md 3.5)."""
+    import json
+    roh = json.dumps({"version": 1, "widgets": widget_daten}, ensure_ascii=False, separators=(",", ":"))
+    roh = roh.replace("</", "<\\/")
+    return f'<script type="application/json" id="album-daten">{roh}</script>'
+
+
+def komponenten_js(namen: list[str]) -> str:
+    """Liest die benutzten Web Components aus widgets/ (plus gemeinsame Hilfen) für die Einbettung."""
+    if not namen:
+        return ""
+    dateien = [WIDGETS / "gemeinsam" / "einbettung.js"] + [WIDGETS / n / f"{n}.js" for n in namen]
+    teile = []
+    for d in dateien:
+        if not d.is_file():
+            fehler(f"Datei der Web Component fehlt: {d}\n"
+                   "       Das Verzeichnis 'widgets' muss neben fotoalbum.py liegen (ganzes Repository verwenden).")
+        teile.append(d.read_text(encoding="utf-8").replace("</script", "<\\/script"))
+    return "\n" + "\n".join(teile)
+
+
+# Übergabe: verteilt den JSON-Block auf die Widget-Elemente (ARCHITEKTUR.md 3.5)
+UEBERGABE_JS = r"""
+(function(){
+"use strict";
+var q=document.getElementById("album-daten"),d;if(!q)return;
+try{d=JSON.parse(q.textContent)}catch(e){return}
+[].forEach.call(document.querySelectorAll("[data-daten]"),function(el){
+  var x=d.widgets&&d.widgets[el.getAttribute("data-daten")];if(x!==undefined)el.daten=x;
+});
+})();
+"""
 
 
 # ───────────────────────────── Vorlage ─────────────────────────────
@@ -735,17 +793,8 @@ h1{margin:0;font-size:60px;line-height:1.05;font-weight:600;letter-spacing:-.02e
 .js .mat{cursor:zoom-in}
 .pano{grid-column:1/-1;margin:0;display:flex;flex-direction:column;gap:12px;min-width:0}
 .pano-mat{background:var(--mat);box-shadow:var(--mat-shadow);padding:28px}
-.pano-view{position:relative;overflow:hidden;background:rgba(127,127,127,.18)}
-.pano-view>img{display:block;width:100%;height:auto}
-.pano-view.aktiv{aspect-ratio:2.2}
-.pano-view.aktiv>img{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.pano-view>canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none}
-.pano-view>canvas.zieht{cursor:grabbing}
-.pano-zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:8px}
-.pano-zoom button{width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--nav-bg);box-shadow:var(--nav-shadow);border:none;border-radius:999px;padding:0}
-.pano-zoom button[disabled]{opacity:.35;cursor:default}
-.pano-hinweis{position:absolute;left:12px;bottom:12px;height:44px;display:flex;align-items:center;gap:8px;font-size:14px;background:var(--nav-bg);box-shadow:var(--nav-shadow);padding:0 16px;border-radius:999px;pointer-events:none;transition:opacity .4s}
-.pano-hinweis.weg{opacity:0}
+album-panorama{display:block;position:relative;overflow:hidden;background:rgba(127,127,127,.18)}
+album-panorama>img{display:block;width:100%;height:auto}
 figcaption{font-size:15px;color:var(--muted);text-align:center;text-wrap:balance;overflow-wrap:anywhere}
 footer{font-size:15px;color:var(--muted);text-align:center}
 .klapp{display:flex;flex-direction:column;align-items:center;gap:28px}
@@ -797,8 +846,6 @@ figcaption,footer{font-size:13px}
 .zeitleiste li{padding:0 0 16px 24px}
 .zl-text{font-size:15px}
 .pano-mat{padding:12px}
-.pano-view.aktiv{aspect-ratio:1.4}
-.pano-hinweis{font-size:13px;padding:0 12px}
 .wegpunkte{margin-top:16px;gap:12px}
 }
 .lb{position:fixed;inset:0;z-index:10;background:var(--lb-bg);display:grid;grid-template-columns:48px minmax(0,1fr) 48px;grid-template-rows:auto minmax(0,1fr) auto;
@@ -875,6 +922,7 @@ TEMPLATE = f"""<!DOCTYPE html>
 <div class="lb-text"><span class="lb-unterschrift" id="lbUnterschrift"></span><span class="lb-datum" id="lbDatum"></span></div>
 </div>
 %%DATEN%%
+%%WIDGETDATEN%%
 <script>%%JS%%</script>
 </body>
 </html>
@@ -977,135 +1025,6 @@ buehne.addEventListener("touchend",function(e){
   if(Math.abs(dx)>50&&Math.abs(dx)>1.5*Math.abs(dy))zeige(dx<0?akt+1:akt-1);
 },{passive:true});
 window.addEventListener("resize",einpassen);
-})();
-"""
-
-JS_PANO = r"""
-/* ── Panorama: zylindrisches Bild per WebGL entzerrt (geradlinig) anzeigen, schwenkbar ── */
-(function(){
-"use strict";
-var VS="attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}";
-var FS="precision highp float;uniform sampler2D t;uniform vec2 res;uniform float yaw,pitch,tanv,theta,tanp,rund;"+
-"void main(){vec2 p=gl_FragCoord.xy/res*2.-1.;vec3 d=vec3(p.x*tanv*res.x/res.y,p.y*tanv,1.);"+
-"float c=cos(pitch),s=sin(pitch);d=vec3(d.x,d.y*c+d.z*s,d.z*c-d.y*s);"+
-"float u=(atan(d.x,d.z)+yaw)/theta+.5;if(rund>.5)u=fract(u);"+
-"gl_FragColor=texture2D(t,vec2(u,.5-d.y/length(d.xz)/(2.*tanp)));}";
-var SVG='<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
-
-function start(view){
-  var img=view.querySelector("img"),W=img.naturalWidth,H=img.naturalHeight;if(!W||!H)return;
-  var cv=document.createElement("canvas"),gl=null,zwei=false,U={},bereit=false;
-  try{gl=cv.getContext("webgl2");zwei=!!gl;if(!gl)gl=cv.getContext("webgl")||cv.getContext("experimental-webgl")}catch(e){}
-  if(!gl)return; /* ohne WebGL bleibt das flache Bild stehen */
-
-  /* Programm und Textur anlegen; läuft beim Start und nach jedem wiederhergestellten Grafikkontext */
-  function aufbauen(){
-    bereit=false;
-    function shader(typ,src){var s=gl.createShader(typ);gl.shaderSource(s,src);gl.compileShader(s);return s}
-    var pr=gl.createProgram();gl.attachShader(pr,shader(gl.VERTEX_SHADER,VS));gl.attachShader(pr,shader(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);
-    if(!gl.getProgramParameter(pr,gl.LINK_STATUS))return false;
-    gl.useProgram(pr);
-    gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
-    var a=gl.getAttribLocation(pr,"a");gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
-    /* Textur: bei Bedarf auf die Grenze der Grafikkarte verkleinern */
-    var max=gl.getParameter(gl.MAX_TEXTURE_SIZE),quelle=img;
-    if(W>max){var k=document.createElement("canvas");k.width=max;k.height=Math.max(1,Math.round(H*max/W));k.getContext("2d").drawImage(img,0,0,k.width,k.height);quelle=k}
-    gl.bindTexture(gl.TEXTURE_2D,gl.createTexture());
-    try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,quelle)}catch(e){return false}
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-    if(zwei){gl.generateMipmap(gl.TEXTURE_2D);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR)}
-    else gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-    ["res","yaw","pitch","tanv","theta","tanp","rund"].forEach(function(n){U[n]=gl.getUniformLocation(pr,n)});
-    bereit=true;return true;
-  }
-  if(!aufbauen())return;
-
-  /* Geometrie: Zylinderprojektion, Breite = f*theta, Höhe = 2*f*tan(Bildwinkel/2) */
-  var pv=(parseFloat(view.getAttribute("data-bildwinkel"))||54)*Math.PI/180,tanp=Math.tan(pv/2);
-  var theta=W/H*2*tanp,rund=theta>=2*Math.PI-.02;if(theta>2*Math.PI)theta=2*Math.PI;
-  var yaw=0,pitch=0,zoom=1,zoomMin=1,ZOOM_MAX=4,bw=1,bh=1;
-
-  view.appendChild(cv);
-  var zb=document.createElement("div");zb.className="pano-zoom";
-  zb.innerHTML='<button type="button" aria-label="Verkleinern">'+SVG+'<path d="M5 12h14"/></svg></button><button type="button" aria-label="Vergrößern">'+SVG+'<path d="M5 12h14M12 5v14"/></svg></button>';
-  var hinweis=document.createElement("div");hinweis.className="pano-hinweis";
-  hinweis.innerHTML=SVG+'<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M3 12h18"/></svg><span>Ziehen zum Umsehen</span>';
-  view.appendChild(hinweis);view.appendChild(zb);view.classList.add("aktiv");
-  var minus=zb.children[0],plus=zb.children[1];
-
-  function grenzen(){
-    var asp=bw/bh;
-    zoomMin=1;if(!rund&&theta<Math.PI){zoomMin=Math.max(1,asp*tanp/Math.tan(theta/2))}
-    zoom=Math.min(ZOOM_MAX,Math.max(zoomMin,zoom));
-    var tv=tanp/zoom,pl=Math.max(0,pv/2-Math.atan(tv));pitch=Math.min(pl,Math.max(-pl,pitch));
-    if(!rund){
-      var x=tv*asp,c=Math.cos(pitch),s=Math.abs(Math.sin(pitch)),n=c-tv*s;
-      var halb=n>1e-3?Math.atan(x/n):Math.PI/2,yl=Math.max(0,theta/2-halb);
-      yaw=Math.min(yl,Math.max(-yl,yaw));
-    }
-    minus.disabled=zoom<=zoomMin+1e-6;plus.disabled=zoom>=ZOOM_MAX-1e-6;
-    return tv;
-  }
-  function zeichne(){
-    var r=view.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
-    bw=Math.max(1,r.width);bh=Math.max(1,r.height);
-    var w=Math.round(bw*dpr),h=Math.round(bh*dpr);
-    if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h}
-    var tv=grenzen();
-    if(!bereit||gl.isContextLost())return;
-    gl.viewport(0,0,w,h);
-    gl.uniform2f(U.res,w,h);gl.uniform1f(U.yaw,yaw);gl.uniform1f(U.pitch,pitch);gl.uniform1f(U.tanv,tv);
-    gl.uniform1f(U.theta,theta);gl.uniform1f(U.tanp,tanp);gl.uniform1f(U.rund,rund?1:0);
-    gl.drawArrays(gl.TRIANGLES,0,3);
-  }
-  var wartet=false;function neu(){if(wartet)return;wartet=true;requestAnimationFrame(function(){wartet=false;zeichne()})}
-
-  /* Zeiger: ein Finger/Maus schwenkt, zwei Finger zoomen */
-  var zeiger={},anzahl=0,abstand=0;
-  function zweiAbstand(){var k=Object.keys(zeiger);if(k.length<2)return 0;var a=zeiger[k[0]],b=zeiger[k[1]];return Math.hypot(a.x-b.x,a.y-b.y)}
-  cv.addEventListener("pointerdown",function(e){
-    zeiger[e.pointerId]={x:e.clientX,y:e.clientY};anzahl=Object.keys(zeiger).length;abstand=zweiAbstand();
-    cv.classList.add("zieht");hinweis.classList.add("weg");try{cv.setPointerCapture(e.pointerId)}catch(x){}
-  });
-  cv.addEventListener("pointermove",function(e){
-    var z=zeiger[e.pointerId];if(!z)return;var dx=e.clientX-z.x,dy=e.clientY-z.y;z.x=e.clientX;z.y=e.clientY;
-    if(anzahl>=2){var d=zweiAbstand();if(abstand>0&&d>0)zoom*=d/abstand;abstand=d;neu();return}
-    var tv=tanp/zoom;
-    yaw-=dx*2*tv*(bw/bh)/bw;
-    if(e.pointerType!=="touch")pitch+=dy*2*tv/bh; /* am Handy bleibt senkrechtes Wischen das Scrollen der Seite */
-    neu();
-  });
-  function ende(e){delete zeiger[e.pointerId];anzahl=Object.keys(zeiger).length;abstand=zweiAbstand();if(!anzahl)cv.classList.remove("zieht")}
-  cv.addEventListener("pointerup",ende);cv.addEventListener("pointercancel",ende);
-  cv.addEventListener("dblclick",function(){zoom=zoom>zoomMin*1.2?zoomMin:zoomMin*2;neu()});
-  plus.addEventListener("click",function(){zoom*=1.5;neu()});
-  minus.addEventListener("click",function(){zoom/=1.5;neu()});
-
-  /* Grafikkontext: Verlust abfangen und neu aufbauen (am Handy bei Speicherdruck üblich) */
-  cv.addEventListener("webglcontextlost",function(e){e.preventDefault();bereit=false});
-  cv.addEventListener("webglcontextrestored",function(){if(aufbauen())zeichne()});
-  /* Browser erlauben nur wenige WebGL-Flächen gleichzeitig: außerhalb des Sichtbereichs freigeben */
-  var ext=gl.getExtension("WEBGL_lose_context");
-  if(ext&&window.IntersectionObserver){
-    new IntersectionObserver(function(es){
-      var sichtbar=es[es.length-1].isIntersecting;
-      try{if(sichtbar&&gl.isContextLost())ext.restoreContext();else if(!sichtbar&&!gl.isContextLost())ext.loseContext()}catch(e){}
-    },{rootMargin:"600px 0px"}).observe(view);
-  }
-  if(window.ResizeObserver)new ResizeObserver(neu).observe(view);else window.addEventListener("resize",neu);
-  zeichne();
-}
-[].forEach.call(document.querySelectorAll(".pano-view"),function(v){
-  var img=v.querySelector("img"),gestartet=false;
-  function los(){if(gestartet)return;gestartet=true;try{start(v)}catch(e){}}
-  function wennGeladen(){if(img.complete&&img.naturalWidth)los();else img.addEventListener("load",los)}
-  /* erst starten, wenn das Panorama in die Nähe des Sichtbereichs kommt */
-  if(window.IntersectionObserver){
-    var io=new IntersectionObserver(function(es){if(es.some(function(e){return e.isIntersecting})){io.disconnect();wennGeladen()}},{rootMargin:"600px 0px"});
-    io.observe(v);
-  }else wennGeladen();
-});
 })();
 """
 
