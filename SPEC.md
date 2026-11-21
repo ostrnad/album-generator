@@ -292,9 +292,8 @@ Fotos werden einmal als `[[bild]]` definiert. Widgets verweisen über den Datein
 **Bei der Umsetzung anzupassen:** Abschnitte 4, 5, 6.1 und 6.3 sowie README.md (Konfiguration und der Satz
 zur Reihenfolge der `[[bild]]`-Blöcke).
 
-### 9.7 Rumpfseite und Web Components (entschieden, Einzelheiten offen)
+### 9.7 Rumpfseite und Web Components (entschieden, nicht umgesetzt)
 
 Die Seite wird aus einer Rumpfseite mit den Daten als JSON und Widgets als Web Components zusammengesetzt; nur
 benutzte Widgets kommen in die Datei. Alle bisherigen Teile werden Web Components, G2 entfällt zugunsten von
-G2′. Beschrieben in [ARCHITEKTUR.md](ARCHITEKTUR.md); vor der Umsetzung sind die Fragen in deren Abschnitt 8
-zu klären.
+G2′. Beschrieben in [ARCHITEKTUR.md](ARCHITEKTUR.md). Begonnen wird mit dem Panorama-Widget.

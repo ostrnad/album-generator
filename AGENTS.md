@@ -14,11 +14,11 @@ etwas am Aussehen änderst.
 - **Offene Entscheidungen nicht selbst treffen.** SPEC.md Abschnitt 9.1 listet fünf Fragen zum verlinkten
   Modus, die der Nutzer beantworten muss. Erst fragen, dann umsetzen.
   Ebenso WANDERUNG.md Abschnitt 14 für das Wanderungs-Widget.
-  Ebenso ARCHITEKTUR.md Abschnitt 8 für den Umbau auf Web Components.
+  Für den Umbau auf Web Components gilt ARCHITEKTUR.md; Einzelheiten nach deren Abschnitt 8.10 mit dem
+  Nutzer klären.
 - **Wanderungs-Widget erst umsetzen, wenn die Architektur steht.** Die Bergfex-Beispieldatei liegt in
   `tests/widgets/wanderung/Natz_-_Schabs_Apfelweg.gpx` (WANDERUNG.md Entscheidung 15). Die Wanderung wird eine Web Component;
-  vorher müssen die offenen Fragen in ARCHITEKTUR.md Abschnitt 8 beantwortet sein. An der Spec weiterarbeiten
-  ist erlaubt.
+  begonnen wird laut ARCHITEKTUR.md mit dem Panorama. An der Spec weiterarbeiten ist erlaubt.
 - **Die `album.toml` bleibt rückwärtskompatibel (SPEC G6).** Würde eine Änderung eine bisher gültige
   Konfiguration brechen oder anders auswerten: nicht umsetzen, sondern zuerst ausdrücklich darauf hinweisen
   und auf die Entscheidung des Nutzers warten.

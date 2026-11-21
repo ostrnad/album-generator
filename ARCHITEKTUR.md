@@ -1,7 +1,7 @@
 # ARCHITEKTUR – Rumpfseite und Web Components
 
-**Stand: in Arbeit, nicht umgesetzt.** Die Entscheidungen stehen in Abschnitt 2, offene Fragen in Abschnitt 8.
-Vor der Umsetzung müssen sie beantwortet sein; zum Vorgehen siehe Abschnitt 10.
+**Stand: beschrieben, nicht umgesetzt.** Die Entscheidungen stehen in Abschnitt 2, ihre Herleitung in
+Abschnitt 8. Was erst bei der Umsetzung festgelegt wird, steht in 8.10. Zum Vorgehen siehe Abschnitt 10.
 
 Dieses Dokument beschreibt, wie die erzeugte Seite künftig aufgebaut ist und wie der Bau sie zusammensetzt.
 Was die einzelnen Teile tun und wie sie aussehen, steht weiter in [SPEC.md](SPEC.md), [WANDERUNG.md](WANDERUNG.md)
@@ -25,8 +25,9 @@ Der Bau setzt beides zu **einer** HTML-Datei zusammen, in der alles eingebettet 
 - **Daten als JSON:** Die Rumpfseite enthält die Daten des Albums als JSON. Die Web Components lesen sie als
   Eingabe und rendern daraus ihre Darstellung.
 - **Eingabe nur als JSON im Element:** Ein Widget bekommt seine Daten ausschließlich als JSON in seinem
-  Element (z. B. `<script type="application/json">` als Kind). Nachladen per Adresse (`src="…"`) gibt es
-  nicht, auch nicht auf fremden Seiten.
+  Element (z. B. `<script type="application/json">` als Kind). Die Daten des Albums sind also auf die
+  Widget-Elemente der Rumpfseite verteilt. Nachladen per Adresse (`src="…"`) gibt es nicht, auch nicht auf
+  fremden Seiten.
 - **Keine Kacheln vom Server:** Auch auf fremden Seiten lädt ein Widget keine Kacheln nach; sie stecken in
   seinen Daten (G1 gilt auch für isoliert eingebundene Widgets).
 - **Shadow DOM:** Jede Component kapselt ihre Darstellung im Shadow DOM. Farben kommen über CSS-Variablen
@@ -96,7 +97,7 @@ Das geht mit reinem HTML/CSS über die CSS-Pseudoklasse `:target`:
 - Panoramen sind kein Link und haben kein `gross-N`; das Blättern überspringt sie (wie SPEC 6.7).
 - Das große Bild steht als `<img loading="lazy">` mit Data-URL darin. Unsichtbare Lazy-Bilder lädt und
   dekodiert der Browser erst beim Öffnen. Die Großansicht-Component mit JavaScript nimmt das Bild von dort;
-  es wird also nicht zusätzlich im JSON eingebettet (siehe 8.2).
+  es wird also nicht zusätzlich im JSON eingebettet (siehe 3.4).
 
 Ausprobiert mit einem Prototyp in Chrome (Playwright, JavaScript abgeschaltet): öffnen, blättern und
 schließen funktionieren, die Seite springt beim Öffnen nicht. Nicht geprüft: Safari, Firefox, echte
@@ -117,7 +118,7 @@ Grenzen gegenüber der Großansicht mit JavaScript:
 - Der Hinweis erscheint nur, wenn das Album Widgets enthält, die ohne JavaScript fehlen (Stationen, Karte,
   Wanderung …). Ein Album, das nur aus Fotos besteht, zeigt ihn nicht (Entscheidung des Nutzers).
 - Panoramen zählen als Fotos: Sie stehen ohne JavaScript als flacher Streifen im Raster, lösen den Hinweis
-  also allein nicht aus. (Annahme, noch zu bestätigen.)
+  also allein nicht aus (Entscheidung des Nutzers).
 - Wortlaut und Aussehen (nach DESIGN.md) sind bei der Umsetzung festzulegen.
 
 
@@ -144,8 +145,10 @@ Grenzen gegenüber der Großansicht mit JavaScript:
   - Bilder, die nicht im Raster vorkommen (z. B. nur in einer Wanderung, SPEC 9.6), ebenfalls im HTML,
     aber ohne JavaScript unsichtbar und nicht geladen. Vorschlag: in einem `<template>`-Element; dessen
     Inhalt lädt der Browser nicht, JavaScript kann ihn aber lesen.
-- Das JSON enthält eine zentrale Bildtabelle (Kennung, Unterschrift, Datum, Maße, Ort der Bilddaten im HTML);
-  Widgets verweisen per Kennung darauf.
+- Das JSON eines Widgets nennt die Bilder, die es zeigt, mit Unterschrift, Datum und Maßen und verweist per
+  Kennung auf die Bilddaten im HTML (z. B. die `id` eines `<img>`). Eine zentrale Bildtabelle für alle Widgets
+  gibt es nicht, weil jedes Widget nur sein eigenes JSON liest (Abschnitt 2). Die Großansicht bekommt die
+  Kennungen mit dem Ereignis „Großansicht öffnen" (3.3).
 - Auf einer fremden Seite gibt es diese Grundansicht nicht. Da ein Widget nichts nachlädt (Abschnitt 2),
   müssen seine Bilder dort im Element selbst stecken, etwa als `<img>` oder `<template>` neben dem JSON.
   Die genaue Form ist bei der Umsetzung festzulegen.
@@ -267,7 +270,10 @@ Die Aufteilung in Widgets ist auch die Aufteilung der Tests:
 - Die Seiten sind öffentlich. Das betrifft auch die echte Bergfex-Tour, sobald die Wanderung eine Testseite
   hat.
 
-## 8. Offene Fragen
+## 8. Entscheidungen im Einzelnen
+
+Alle Fragen dieses Abschnitts sind entschieden. Er bleibt stehen, damit nachvollziehbar ist, was wann
+gefragt war.
 
 ### 8.1 Rumpf und Zuschnitt der Widgets
 
@@ -283,9 +289,7 @@ darauf. Siehe 2 und 3.4.
 
 *Entschieden:* Die Components bauen auf dem HTML der Grundansicht auf. Panoramen ohne JavaScript als
 gewöhnliches Foto im Raster, ohne Großansicht; „alle Fotos" heißt alle Fotos der Galerie; der Hinweis ohne
-JavaScript erscheint nur, wenn das Album mehr als Fotos enthält. Siehe 2, 3.1, 3.2.
-
-Noch zu bestätigen: Panoramen lösen den Hinweis allein nicht aus (3.2).
+JavaScript erscheint nur, wenn das Album mehr als Fotos enthält. Siehe 2, 3.1, 3.2. Panoramen zählen dabei als Fotos (3.2).
 
 ### 8.4 Widgets auf fremden Seiten
 
@@ -314,7 +318,18 @@ Panorama-Widget eingeführt.
 
 ### 8.9 Hinweis ohne JavaScript bei Panoramen
 
-Noch zu bestätigen: Panoramen zählen als Fotos und lösen den Hinweis allein nicht aus (3.2).
+*Entschieden:* Panoramen zählen als Fotos und lösen den Hinweis allein nicht aus (3.2).
+
+### 8.10 Bei der Umsetzung festzulegen
+
+Keine Grundsatzfragen mehr, sondern Einzelheiten, die mit dem jeweiligen Widget entschieden werden:
+
+- Namen und Daten der Ereignisse (3.3)
+- Aufbau des JSON je Widget samt Versionsangabe, Einheiten und Formate der Rohwerte (5, 6)
+- Form der Bilder im Element auf fremden Seiten (3.4)
+- Name und Art der Schnittstelle für die Schrift (6)
+- ob Rumpf und Schrift eigene Dateien werden (5.1)
+- Wortlaut und Aussehen des Hinweises ohne JavaScript (3.2)
 
 ## 9. Bei der Umsetzung anzupassen
 
@@ -325,6 +340,8 @@ Noch zu bestätigen: Panoramen zählen als Fotos und lösen den Hinweis allein n
 - WANDERUNG.md: 13.1 widerspricht G2′ (dort Abschnittskopf und Kennzahlen ohne JavaScript, künftig nichts);
   13.1 und 13.4 an G2′ und die Component anpassen.
 - README.md: Voraussetzungen und Aufbau; das Werkzeug besteht künftig aus `fotoalbum.py` und `widgets/`.
+- SPEC.md 9.6: Die dort beschriebene Einbettung (Vorschauen im `<img>` des Rasters, eigener Datenblock für
+  Bilder außerhalb des Rasters) wird durch 3.4 ersetzt.
 - AGENTS.md, Abschnitt Git: Testdaten der Components werden eingecheckt (bisher verboten), sofern sie
   synthetisch sind oder die Bergfex-Referenz; erzeugte Alben bleiben draußen.
 
