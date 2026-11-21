@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testseite: Panorama</title>
+<style>
+:root{--bg:#DCE3DD;--fg:#1F2A24;--muted:#4A584F;--rahmen:#B9C4BB;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#161C18;--fg:#E6ECE7;--muted:#A9B5AC;--rahmen:#36413A;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;padding:24px 16px 64px;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,sans-serif}
+h1{font-size:24px;margin:0 0 4px}
+h2{font-size:19px;margin:40px 0 4px}
+p{margin:4px 0;color:var(--muted)}
+a{color:inherit}
+.leiste{position:sticky;top:0;z-index:1;background:var(--bg);padding:8px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.leiste button{font:inherit;min-height:44px;padding:0 16px;border-radius:999px;border:1px solid var(--muted);background:transparent;color:inherit;cursor:pointer}
+.leiste button[aria-pressed=true]{background:var(--fg);color:var(--bg)}
+.ansichten{display:flex;flex-direction:column;gap:20px;margin-top:12px}
+.ansicht h3{font-size:14px;font-weight:600;margin:0 0 6px;color:var(--muted)}
+.rahmen{overflow:auto;width:max-content;max-width:100%;border:1px solid var(--rahmen)}
+iframe{display:block;border:0;background:#fff}
+</style>
+</head>
+<body>
+<h1>Testseite: Panorama</h1>
+<p>Synthetische Zylinder-Panoramen eines Raums mit Gitterlinien. Im Widget müssen alle Linien gerade sein; ohne JavaScript erscheint der flache Streifen.</p>
+<p><a href="beispielalbum.html">Beispielalbum</a> (mit fotoalbum.py gebaut)</p>
+<div class="leiste"><button type="button" data-thema="light" aria-pressed="true">Hell</button><button type="button" data-thema="dark" aria-pressed="false">Dunkel</button></div>
+<section><h2>rund-360</h2><p>Ganzer Kreis (360°), Bildwinkel 54° wie die iPhone-Hauptkamera – Panorama 4193 × 680 px · <a data-basis="rund-360" href="rund-360-light.html">einzeln öffnen</a> · <a href="rund-360-light.html#protokoll">mit Touch-Protokoll</a></p><div class="ansichten"><div class="ansicht"><h3>Handy (390 px)</h3><div class="rahmen"><iframe loading="lazy" title="Handy" width="390" height="620" data-basis="rund-360" src="rund-360-light.html"></iframe></div></div><div class="ansicht"><h3>Desktop (1200 px)</h3><div class="rahmen"><iframe loading="lazy" title="Desktop" width="1200" height="820" data-basis="rund-360" src="rund-360-light.html"></iframe></div></div><div class="ansicht"><h3>Ohne JavaScript (1200 px)</h3><div class="rahmen"><iframe loading="lazy" title="Ohne JavaScript" sandbox="allow-same-origin" width="1200" height="820" data-basis="rund-360" src="rund-360-light.html"></iframe></div></div></div></section><section><h2>halb-180</h2><p>Halbkreis (180°), Bildwinkel 54° – Panorama 2775 × 900 px · <a data-basis="halb-180" href="halb-180-light.html">einzeln öffnen</a> · <a href="halb-180-light.html#protokoll">mit Touch-Protokoll</a></p><div class="ansichten"><div class="ansicht"><h3>Handy (390 px)</h3><div class="rahmen"><iframe loading="lazy" title="Handy" width="390" height="620" data-basis="halb-180" src="halb-180-light.html"></iframe></div></div><div class="ansicht"><h3>Desktop (1200 px)</h3><div class="rahmen"><iframe loading="lazy" title="Desktop" width="1200" height="820" data-basis="halb-180" src="halb-180-light.html"></iframe></div></div><div class="ansicht"><h3>Ohne JavaScript (1200 px)</h3><div class="rahmen"><iframe loading="lazy" title="Ohne JavaScript" sandbox="allow-same-origin" width="1200" height="820" data-basis="halb-180" src="halb-180-light.html"></iframe></div></div></div></section><section><h2>schmal-120</h2><p>Schmal (120°): Mindestzoom greift, Ausschnitt bleibt im Bild – Panorama 2261 × 1100 px · <a data-basis="schmal-120" href="schmal-120-light.html">einzeln öffnen</a> · <a href="schmal-120-light.html#protokoll">mit Touch-Protokoll</a></p><div class="ansichten"><div class="ansicht"><h3>Handy (390 px)</h3><div class="rahmen"><iframe loading="lazy" title="Handy" width="390" height="620" data-basis="schmal-120" src="schmal-120-light.html"></iframe></div></div><div class="ansicht"><h3>Desktop (1200 px)</h3><div class="rahmen"><iframe loading="lazy" title="Desktop" width="1200" height="820" data-basis="schmal-120" src="schmal-120-light.html"></iframe></div></div><div class="ansicht"><h3>Ohne JavaScript (1200 px)</h3><div class="rahmen"><iframe loading="lazy" title="Ohne JavaScript" sandbox="allow-same-origin" width="1200" height="820" data-basis="schmal-120" src="schmal-120-light.html"></iframe></div></div></div></section><section><h2>weit-70</h2><p>240° mit größerem Bildwinkel (70°) – Panorama 2692 × 900 px · <a data-basis="weit-70" href="weit-70-light.html">einzeln öffnen</a> · <a href="weit-70-light.html#protokoll">mit Touch-Protokoll</a></p><div class="ansichten"><div class="ansicht"><h3>Handy (390 px)</h3><div class="rahmen"><iframe loading="lazy" title="Handy" width="390" height="620" data-basis="weit-70" src="weit-70-light.html"></iframe></div></div><div class="ansicht"><h3>Desktop (1200 px)</h3><div class="rahmen"><iframe loading="lazy" title="Desktop" width="1200" height="820" data-basis="weit-70" src="weit-70-light.html"></iframe></div></div><div class="ansicht"><h3>Ohne JavaScript (1200 px)</h3><div class="rahmen"><iframe loading="lazy" title="Ohne JavaScript" sandbox="allow-same-origin" width="1200" height="820" data-basis="weit-70" src="weit-70-light.html"></iframe></div></div></div></section>
+<script>
+(function(){
+var knoepfe=document.querySelectorAll("[data-thema]");
+function setze(t){
+  [].forEach.call(document.querySelectorAll("iframe[data-basis]"),function(f){f.src=f.getAttribute("data-basis")+"-"+t+".html"});
+  [].forEach.call(document.querySelectorAll("a[data-basis]"),function(a){a.href=a.getAttribute("data-basis")+"-"+t+".html"});
+  [].forEach.call(knoepfe,function(k){k.setAttribute("aria-pressed",k.getAttribute("data-thema")===t?"true":"false")});
+}
+[].forEach.call(knoepfe,function(k){k.addEventListener("click",function(){setze(k.getAttribute("data-thema"))})});
+})();
+</script>
+</body>
+</html>
