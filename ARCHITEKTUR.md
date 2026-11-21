@@ -33,6 +33,7 @@ Der Bau setzt beides zu **einer** HTML-Datei zusammen, in der alles eingebettet 
   hinein, so dass Hell/Dunkel von außen gesteuert wird.
 - **Schrift von außen festlegbar:** Jedes Widget bietet eine Schnittstelle, über die man von außen die Schrift
   festlegt. Im Album nehmen die Widgets standardmäßig die eingebettete Schrift der Rumpfseite.
+- **Python rechnet, die Components formatieren und stellen dar** (Abschnitt 5).
 - **Components bauen auf der Grundansicht auf:** Raster und Großansicht übernehmen das HTML, das der Bau für
   die Grundansicht schreibt (Bilder, Texte, Reihenfolge), statt es aus dem JSON neu zu erzeugen.
 - **Alle Teile außer dem Rumpf werden Web Components:** Alle bisherigen Teile des Albums werden durch Web
@@ -160,8 +161,21 @@ Bisherige Teile und was aus ihnen wird:
 
 ## 5. Bau
 
-- Python bleibt für alles Rechnen zuständig: Konfiguration prüfen, Bilder verarbeiten, Kacheln laden, GPX
-  lesen, Kennzahlen bestimmen. Die Web Components stellen nur dar. (Vorschlag, siehe 8.5.)
+- **Python rechnet:** `fotoalbum.py` führt alle Berechnungen durch und legt die vereinfachten bzw.
+  errechneten Daten als JSON ab. Dazu gehören: Konfiguration prüfen, Bilder verarbeiten, Kacheln laden und
+  ihre Lage bestimmen, GPX lesen und vereinfachen, Kennzahlen, km-Position von Halten und Fotos, Zoomstufen,
+  Lage der Markierungen auf der Karte.
+- **Die Components rechnen nur, was von der Bedienung abhängt,** z. B. Höhe und Steigung am Cursor oder den
+  Kartenausschnitt beim Zoomen.
+- **Die Components formatieren:** Das JSON enthält Rohwerte in festen Einheiten (Vorschlag: Meter, Sekunden,
+  Datum als ISO-Text `2026-06-14`, Koordinaten in Grad). Wie sie angezeigt werden („8,1 km", „2:44 h",
+  „14. Juni 2026"), legt die jeweilige Component bei der Darstellung fest.
+- **Ausnahme Grundansicht:** Kopf und Fuß (Rumpf) sowie Raster und Großansicht ohne JavaScript erzeugt der Bau
+  als fertiges HTML (Abschnitt 3); Texte darin, etwa Daten, formatiert also Python. Das Raster übernimmt sie
+  von dort (Abschnitt 2). Datumsformatierung gibt es damit zweimal, in Python und in JavaScript; beide folgen
+  SPEC 4 (`12. Juli 2026`, verkürzte Zeiträume) und sollten in den Tests gegeneinander geprüft werden.
+- Folge für fremde Seiten: Das JSON eines Widgets erzeugt immer `fotoalbum.py`. Rohe Daten wie eine
+  GPX-Datei kann man einem Widget nicht direkt geben.
 - Der Bau ermittelt aus der `album.toml`, welche Widgets gebraucht werden, und bettet nur deren Code ein.
 - Die großen Base64-Blöcke werden weiter direkt in die Datei geschrieben, nicht erst im Speicher
   zusammengesetzt.
@@ -221,7 +235,8 @@ Noch zu bestätigen: Panoramen lösen den Hinweis allein nicht aus (3.2).
 
 ### 8.5 Arbeitsteilung
 
-Bleibt es dabei, dass Python rechnet und die Components nur darstellen (Abschnitt 5)?
+*Entschieden:* Python rechnet und legt die errechneten Daten als JSON ab; die Components formatieren bei der
+Darstellung. Siehe 5. Bei der Umsetzung festzulegen: die Einheiten und Formate der Rohwerte im JSON.
 
 ### 8.6 Dateien und Werkzeuge
 
