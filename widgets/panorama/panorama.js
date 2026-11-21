@@ -21,9 +21,8 @@ var FS="precision highp float;uniform sampler2D t;uniform vec2 res;uniform float
 var SVG='<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
 var CSS=":host{display:block;position:relative;overflow:hidden;font-family:var(--album-schrift,inherit)}"+
 ":host([aktiv]){aspect-ratio:2.2}"+
-"canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none}"+
+"canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}"+
 "canvas.zieht{cursor:grabbing}"+
-"canvas.gezoomt{touch-action:none}"+
 "button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}"+
 "button:focus-visible{outline:2px solid currentColor;outline-offset:3px}"+
 ".zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:8px}"+
@@ -123,8 +122,6 @@ function starten(host,img,daten){
       yaw=Math.min(yl,Math.max(-yl,yaw));
     }
     minus.disabled=zoom<=zoomMin+1e-6;plus.disabled=zoom>=ZOOM_MAX-1e-6;
-    /* vergrößert gehören alle Gesten dem Panorama (auch senkrecht), sonst scrollt senkrechtes Wischen die Seite */
-    cv.classList.toggle("gezoomt",zoom>zoomMin+1e-6);
     return tv;
   }
   function zeichne(){
@@ -162,43 +159,62 @@ function starten(host,img,daten){
   function mausEnde(e){if(maus&&e.pointerId===maus.id){maus=null;cv.classList.remove("zieht")}}
   cv.addEventListener("pointerup",mausEnde);cv.addEventListener("pointercancel",mausEnde);
 
-  /* Finger: Touch-Ereignisse statt Zeiger-Ereignissen, weil Safari (iOS) eine Geste abbricht (pointercancel),
-     sobald sie senkrecht wird und die Seite scrollen könnte. Die erste Bewegung entscheidet:
-     waagerecht -> die ganze Geste schwenkt (auch wenn sie später die Richtung ändert),
-     senkrecht  -> die Seite scrollt; vergrößert schwenkt und neigt jede Geste, zwei Finger zoomen. */
-  var finger=null; /* {modus: null|"panorama"|"seite"|"zoom", x, y, abstand} */
+  /* Finger: Das Panorama nimmt alle Touch-Gesten selbst entgegen (touch-action: none) und entscheidet selbst,
+     ob eine Geste schwenkt oder die Seite scrollt. Überlässt man das dem Browser (touch-action: pan-y),
+     übernimmt Safari (iOS) Gesten, die auch nur leicht senkrecht beginnen oder werden, und das Schwenken hakt.
+     - Unvergrößert entscheidet die Bewegung der ersten SCHWELLE Pixel: waagerecht -> die ganze Geste schwenkt,
+       auch nach einem Richtungswechsel; senkrecht -> die Geste scrollt die Seite (mit Nachlauf).
+     - Vergrößert schwenkt und neigt jede Geste. Zwei Finger zoomen. */
+  var SCHWELLE=8,finger=null,nachlauf=0; /* finger: {modus: null|"panorama"|"seite"|"zoom", x, y, sx, sy, abstand, spur} */
   function fingerAbstand(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)}
   function gezoomt(){return zoom>zoomMin+1e-6}
+  function einFinger(t,modus){return {modus:modus,x:t.clientX,y:t.clientY,sx:t.clientX,sy:t.clientY,spur:[]}}
   cv.addEventListener("touchstart",function(e){
     hinweis.classList.add("weg");
+    if(nachlauf){cancelAnimationFrame(nachlauf);nachlauf=0}
     var t=e.touches;
-    if(t.length>=2){finger={modus:"zoom",abstand:fingerAbstand(t)};e.preventDefault();return}
-    finger={modus:gezoomt()?"panorama":null,x:t[0].clientX,y:t[0].clientY};
-  },{passive:false});
+    if(t.length>=2){finger={modus:"zoom",abstand:fingerAbstand(t)};return}
+    finger=einFinger(t[0],gezoomt()?"panorama":null);
+  });
   cv.addEventListener("touchmove",function(e){
+    if(e.cancelable)e.preventDefault(); /* für Browser ohne touch-action */
     if(!finger)return;
     var t=e.touches;
     if(t.length>=2){
-      e.preventDefault();
       var d=fingerAbstand(t);if(finger.modus==="zoom"&&finger.abstand>0&&d>0)zoom*=d/finger.abstand;
       finger={modus:"zoom",abstand:d};neu();return;
     }
-    if(finger.modus==="seite"||finger.modus==="zoom")return;
-    var dx=t[0].clientX-finger.x,dy=t[0].clientY-finger.y;
+    if(finger.modus==="zoom")return;
+    var x=t[0].clientX,y=t[0].clientY;
     if(finger.modus===null){
-      if(dx===0&&dy===0)return;
-      finger.modus=Math.abs(dx)>=Math.abs(dy)?"panorama":"seite";
-      if(finger.modus==="seite")return;
+      var gx=x-finger.sx,gy=y-finger.sy;
+      if(Math.max(Math.abs(gx),Math.abs(gy))<SCHWELLE)return; /* noch nicht entschieden */
+      finger.modus=Math.abs(gx)>=Math.abs(gy)?"panorama":"seite";
     }
-    e.preventDefault(); /* Seite nicht scrollen, solange die Geste dem Panorama gehört */
-    finger.x=t[0].clientX;finger.y=t[0].clientY;
-    schwenken(dx,gezoomt()?dy:0);
+    var dx=x-finger.x,dy=y-finger.y;finger.x=x;finger.y=y;
+    if(finger.modus==="panorama"){schwenken(dx,gezoomt()?dy:0);return}
+    window.scrollBy(0,-dy);
+    var jetzt=performance.now();finger.spur.push([jetzt,dy]);
+    while(finger.spur.length&&jetzt-finger.spur[0][0]>100)finger.spur.shift();
   },{passive:false});
+  function scrollNachlauf(spur){
+    /* Geschwindigkeit der letzten 100 ms, dann gleichmäßig abbremsen */
+    if(spur.length<2)return;
+    var dauer=spur[spur.length-1][0]-spur[0][0],weg=0;for(var i=1;i<spur.length;i++)weg+=spur[i][1];
+    if(dauer<=0)return;
+    var v=weg/dauer,zuletzt=performance.now();
+    function schritt(jetzt){
+      var dt=Math.min(32,jetzt-zuletzt);zuletzt=jetzt;
+      window.scrollBy(0,-v*dt);v*=Math.pow(.997,dt);
+      nachlauf=Math.abs(v)>.02?requestAnimationFrame(schritt):0;
+    }
+    nachlauf=requestAnimationFrame(schritt);
+  }
   function fingerEnde(e){
     var t=e.touches;
-    if(!t.length){finger=null;return}
+    if(!t.length){if(finger&&finger.modus==="seite")scrollNachlauf(finger.spur);finger=null;return}
     /* nach dem Zoomen mit dem verbliebenen Finger weiter schwenken */
-    if(t.length===1)finger={modus:"panorama",x:t[0].clientX,y:t[0].clientY};
+    if(t.length===1)finger=einFinger(t[0],"panorama");
   }
   cv.addEventListener("touchend",fingerEnde);cv.addEventListener("touchcancel",fingerEnde);
   /* Safari: eigene Zoomgeste der Seite auf dem Panorama unterdrücken */
