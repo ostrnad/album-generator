@@ -32,11 +32,13 @@ Der Bau setzt beides zu **einer** HTML-Datei zusammen, in der alles eingebettet 
   tritt:
   - **G2′ – Grundansicht ohne JavaScript:** Ohne JavaScript zeigt die Seite nur
     - Kopf und Fuß (Titel, Unterzeile, Datum, „N Fotos"),
-    - das Fotoraster mit allen Fotos samt Unterschriften und
+    - einen Hinweis, dass JavaScript abgeschaltet ist (Abschnitt 3.2),
+    - das Fotoraster mit allen Fotos der Galerie (SPEC 9.6) samt Unterschriften und
     - eine einfache Großansicht: Ein Klick auf ein Foto öffnet es groß (Abschnitt 3.1).
 
-    Alle anderen Widgets (Stationen, Karte, Panorama-Widget, Wanderung) zeigen ohne JavaScript nichts.
-    Hell/Dunkel folgt ohne JavaScript der Systemeinstellung.
+    Panoramen stehen ohne JavaScript als gewöhnliches Foto im Raster (flacher Streifen), öffnen aber keine
+    Großansicht. Alle anderen Widgets (Stationen, Karte, Panorama-Widget, Wanderung) zeigen ohne JavaScript
+    nichts. Hell/Dunkel folgt ohne JavaScript der Systemeinstellung.
 - **G6 gilt weiter:** Der Umbau ändert nichts an der `album.toml`. Jede bisher gültige Konfiguration baut
   weiter und zeigt dieselben Inhalte.
 
@@ -65,6 +67,7 @@ Das geht mit reinem HTML/CSS über die CSS-Pseudoklasse `:target`:
   normal unsichtbar ist und mit `:target` bildschirmfüllend erscheint (`position: fixed`).
 - Darin: das große Bild, ein Schließen-Link zurück auf das Foto im Raster (`#foto-N`) und Blätter-Links auf
   `#gross-N-1` und `#gross-N+1`.
+- Panoramen sind kein Link und haben kein `gross-N`; das Blättern überspringt sie (wie SPEC 6.7).
 - Das große Bild steht als `<img loading="lazy">` mit Data-URL darin. Unsichtbare Lazy-Bilder lädt und
   dekodiert der Browser erst beim Öffnen. Die Großansicht-Component mit JavaScript nimmt das Bild von dort;
   es wird also nicht zusätzlich im JSON eingebettet (siehe 8.2).
@@ -81,18 +84,26 @@ Grenzen gegenüber der Großansicht mit JavaScript:
 - Kein Knopf „Speichern"; ein eigener Download-Link würde das große Bild ein zweites Mal einbetten. Speichern
   geht über das Kontextmenü des Browsers.
 
+### 3.2 Hinweis ohne JavaScript
+
+- Ein `<noscript>`-Block unter dem Kopf sagt, dass JavaScript abgeschaltet ist und deshalb nur die Fotos zu
+  sehen sind; mit JavaScript erscheinen auch die übrigen Teile (Karte, Stationen, Wanderung usw.).
+- Der Hinweis erscheint immer ohne JavaScript, auch wenn das Album nur aus Fotos besteht. (Annahme; alternativ
+  nur, wenn das Album weitere Widgets enthält.)
+- Wortlaut und Aussehen (nach DESIGN.md) sind bei der Umsetzung festzulegen.
+
 ## 4. Die Widgets
 
 Bisherige Teile, die zu Web Components werden (Abgrenzung im Einzelnen offen, siehe 8.1):
 
 | Teil | SPEC | Ohne JavaScript heute | Ohne JavaScript künftig (G2′) |
 |---|---|---|---|
-| Kopf und Fuß | 6.1 | vollständig | vollständig |
-| Fotoraster | 6.1 | vollständig | vollständig, alle Fotos |
+| Kopf und Fuß | 6.1 | vollständig | vollständig, dazu Hinweis auf fehlendes JavaScript (3.2) |
+| Fotoraster | 6.1 | vollständig | vollständig, alle Fotos der Galerie |
 | Großansicht | 6.3 | nicht vorhanden | einfach, per `:target` (3.1) |
 | Stationen | 6.4, 6.5 | vollständig, einklappbar | nichts |
 | Karte mit Wegpunkten | 6.5, 6.6 | vollständig, einklappbar | nichts |
-| Panorama | 6.7 | flacher Streifen | offen (8.3) |
+| Panorama | 6.7 | flacher Streifen | gewöhnliches Foto im Raster, ohne Großansicht |
 | Hell/Dunkel-Umschalter | 6.2 | Systemeinstellung, kein Umschalter | Systemeinstellung, kein Umschalter |
 | Wanderung (geplant) | WANDERUNG.md | Abschnittskopf und Kennzahlen (WANDERUNG 13.1) | nichts |
 
@@ -155,11 +166,9 @@ Vorschlag:
   ihre volle Darstellung. Für diese vier Teile gibt es also doppelte Darstellungslogik. Vorschlag: Die
   Components bauen auf dem vorhandenen HTML auf (Bilder, Texte, Reihenfolge), statt es aus dem JSON neu zu
   erzeugen.
-- Panoramen: Erscheinen sie ohne JavaScript als gewöhnliches Foto im Raster (flacher Streifen, öffnet in der
-  Großansicht)? Heute sind sie nicht Teil der Großansicht (SPEC 6.7).
-- „Alle Fotos": alle Fotos der Galerie (SPEC 9.6, `[galerie]`), oder auch Fotos, die nur in einem Widget wie
-  der Wanderung vorkommen?
-- Soll die Seite ohne JavaScript darauf hinweisen, dass Karte, Stationen usw. fehlen?
+- *Entschieden:* Panoramen ohne JavaScript als gewöhnliches Foto im Raster, ohne Großansicht; „alle Fotos"
+  heißt alle Fotos der Galerie; ohne JavaScript erscheint ein Hinweis (siehe 2, 3.1, 3.2).
+- Offen: Soll der Hinweis auch in einem Album erscheinen, das nur Fotos enthält (3.2)?
 
 ### 8.4 Widgets auf fremden Seiten
 
