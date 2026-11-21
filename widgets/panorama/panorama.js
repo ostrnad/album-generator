@@ -164,7 +164,8 @@ function starten(host,img,daten){
      übernimmt Safari (iOS) Gesten, die auch nur leicht senkrecht beginnen oder werden, und das Schwenken hakt.
      - Unvergrößert entscheidet die Bewegung der ersten SCHWELLE Pixel: waagerecht -> die ganze Geste schwenkt,
        auch nach einem Richtungswechsel; senkrecht -> die Geste scrollt die Seite (mit Nachlauf).
-     - Vergrößert schwenkt und neigt jede Geste. Zwei Finger zoomen. */
+     - Vergrößert schwenkt und neigt jede Geste. Zwei Finger zoomen.
+     Nach dem Loslassen laufen Schwenken, Neigen und Scrollen mit abnehmender Geschwindigkeit nach. */
   var SCHWELLE=8,finger=null,nachlauf=0; /* finger: {modus: null|"panorama"|"seite"|"zoom", x, y, sx, sy, abstand, spur} */
   function fingerAbstand(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)}
   function gezoomt(){return zoom>zoomMin+1e-6}
@@ -192,27 +193,52 @@ function starten(host,img,daten){
       finger.modus=Math.abs(gx)>=Math.abs(gy)?"panorama":"seite";
     }
     var dx=x-finger.x,dy=y-finger.y;finger.x=x;finger.y=y;
-    if(finger.modus==="panorama"){schwenken(dx,gezoomt()?dy:0);return}
-    window.scrollBy(0,-dy);
-    var jetzt=performance.now();finger.spur.push([jetzt,dy]);
+    var jetzt=performance.now();finger.spur.push([jetzt,dx,dy]);
     while(finger.spur.length&&jetzt-finger.spur[0][0]>100)finger.spur.shift();
+    if(finger.modus==="panorama")schwenken(dx,gezoomt()?dy:0);
+    else window.scrollBy(0,-dy);
   },{passive:false});
-  function scrollNachlauf(spur){
-    /* Geschwindigkeit der letzten 100 ms, dann gleichmäßig abbremsen */
-    if(spur.length<2)return;
-    var dauer=spur[spur.length-1][0]-spur[0][0],weg=0;for(var i=1;i<spur.length;i++)weg+=spur[i][1];
-    if(dauer<=0)return;
-    var v=weg/dauer,zuletzt=performance.now();
-    function schritt(jetzt){
+  /* Geschwindigkeit (px/ms) aus den Bewegungen der letzten 100 ms; null, wenn der Finger zuletzt stillstand */
+  function tempo(spur){
+    if(spur.length<2||performance.now()-spur[spur.length-1][0]>60)return null;
+    var dauer=spur[spur.length-1][0]-spur[0][0],wx=0,wy=0;
+    for(var i=1;i<spur.length;i++){wx+=spur[i][1];wy+=spur[i][2]}
+    return dauer>0?{x:wx/dauer,y:wy/dauer}:null;
+  }
+  /* Nachlauf: mit der Geschwindigkeit beim Loslassen weiter, dann gleichmäßig abbremsen.
+     schritt(dx,dy) bewegt und meldet false, wenn es nicht weitergeht (z. B. am Bildrand). */
+  function nachlaufen(v,reibung,schritt){
+    if(!v)return;
+    var zuletzt=performance.now();
+    function weiter(jetzt){
       var dt=Math.min(32,jetzt-zuletzt);zuletzt=jetzt;
-      window.scrollBy(0,-v*dt);v*=Math.pow(.997,dt);
-      nachlauf=Math.abs(v)>.02?requestAnimationFrame(schritt):0;
+      var geht=schritt(v.x*dt,v.y*dt),f=Math.pow(reibung,dt);v.x*=f;v.y*=f;
+      nachlauf=geht&&Math.max(Math.abs(v.x),Math.abs(v.y))>.02?requestAnimationFrame(weiter):0;
     }
-    nachlauf=requestAnimationFrame(schritt);
+    nachlauf=requestAnimationFrame(weiter);
+  }
+  function panoramaNachlauf(spur){
+    var v=tempo(spur);if(!v)return;
+    if(!gezoomt())v.y=0;
+    nachlaufen(v,.996,function(dx,dy){
+      var ay=yaw,ap=pitch,tv=tanp/zoom;
+      yaw-=dx*2*tv*(bw/bh)/bw;pitch+=dy*2*tv/bh;zeichne();
+      if(Math.abs(yaw-ay)<1e-7)v.x=0; /* Bildrand erreicht: in dieser Richtung anhalten */
+      if(Math.abs(pitch-ap)<1e-7)v.y=0;
+      return v.x!==0||v.y!==0;
+    });
+  }
+  function scrollNachlauf(spur){
+    var v=tempo(spur);if(!v)return;v.x=0;
+    nachlaufen(v,.997,function(dx,dy){var a=window.scrollY;window.scrollBy(0,-dy);return Math.abs(dy)<.5||window.scrollY!==a});
   }
   function fingerEnde(e){
     var t=e.touches;
-    if(!t.length){if(finger&&finger.modus==="seite")scrollNachlauf(finger.spur);finger=null;return}
+    if(!t.length){
+      if(finger&&finger.modus==="seite")scrollNachlauf(finger.spur);
+      else if(finger&&finger.modus==="panorama")panoramaNachlauf(finger.spur);
+      finger=null;return;
+    }
     /* nach dem Zoomen mit dem verbliebenen Finger weiter schwenken */
     if(t.length===1)finger=einFinger(t[0],"panorama");
   }

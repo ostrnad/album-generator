@@ -158,7 +158,9 @@ Fehler enden mit `Fehler: …` und Exit-Code ≠ 0. Meldungen sind deutsch.
   entscheidet selbst; dem Browser überlassen (`pan-y`), übernimmt Safari (iOS) leicht senkrechte Gesten und das
   Schwenken hakt. Unvergrößert entscheiden die ersten 8 px: waagerecht -> die ganze Geste schwenkt, auch nach
   einem Richtungswechsel; senkrecht -> das Panorama scrollt die Seite selbst, mit Nachlauf. Vergrößert schwenkt
-  und neigt jede Geste. Zwei Finger zoomen; die eigene Zoomgeste von Safari ist auf dem Panorama unterdrückt.
+  und neigt jede Geste. Nach dem Loslassen laufen Schwenken und (vergrößert) Neigen mit abnehmender
+  Geschwindigkeit nach und halten am Bildrand an; hat der Finger vor dem Loslassen stillgestanden, gibt es
+  keinen Nachlauf. Ein neuer Finger hält den Nachlauf an. Zwei Finger zoomen; die eigene Zoomgeste von Safari ist auf dem Panorama unterdrückt.
   Folge: Auf einer fremden Seite scrollt senkrechtes Wischen über dem Panorama immer das Fenster, nicht einen
   umgebenden Scrollbereich.
 - Der Ausschnitt bleibt immer innerhalb des Bildes (Grenzen für Gieren, Nicken und Mindestzoom).
