@@ -24,8 +24,14 @@ Der Bau setzt beides zu **einer** HTML-Datei zusammen, in der alles eingebettet 
 - **Nur verwendete Widgets:** In die Datei kommen nur die Widgets, die die `album.toml` tatsächlich benutzt.
 - **Daten als JSON:** Die Rumpfseite enthält die Daten des Albums als JSON. Die Web Components lesen sie als
   Eingabe und rendern daraus ihre Darstellung.
-- **Alle Teile werden Web Components:** Alle bisherigen Teile des Albums werden durch Web Components ersetzt.
-  Was es heute gibt, steht in Abschnitt 4.
+- **Alle Teile außer dem Rumpf werden Web Components:** Alle bisherigen Teile des Albums werden durch Web
+  Components ersetzt, bis auf das, was im Rumpf bleibt. Was es heute gibt, steht in Abschnitt 4.
+- **Im Rumpf bleiben** Schrift, Hell/Dunkel (Farben und Umschalter), Kopf und Fuß. Sie werden keine eigenen
+  Widgets.
+- **Die Großansicht ist eine eigene Component.** Andere Widgets (Raster, Wanderung, …) rufen sie auf.
+- **Widgets reden über Ereignisse miteinander** (Abschnitt 3.3), nicht über direkte Aufrufe.
+- **Bilddaten stehen im HTML der Grundansicht, das JSON verweist darauf** (Abschnitt 3.4). Das gilt auch
+  für Bilder, die nicht im Raster vorkommen.
 - **Die Wanderung ist von Anfang an eine Web Component.** Sie soll so gebaut sein, dass man sie auch
   isoliert auf einer beliebigen anderen Website einbinden kann.
 - **G2 entfällt.** Die Seite muss ohne JavaScript nicht mehr vollständig nutzbar sein. An die Stelle von G2
@@ -47,7 +53,8 @@ Der Bau setzt beides zu **einer** HTML-Datei zusammen, in der alles eingebettet 
 ```
 album.toml ──► fotoalbum.py ──────────────────────────────► album.html
                │ prüft die Konfiguration                    ┌──────────────────────────────┐
-               │ verarbeitet Bilder, Kacheln, GPX ...       │ Rumpf: Kopf, Fuß, Hell/Dunkel │
+               │ verarbeitet Bilder, Kacheln, GPX ...       │ Rumpf: Schrift, Hell/Dunkel,  │
+               │                                            │   Kopf, Fuß                   │
                │ erzeugt die Daten als JSON          ──────►│ Daten (JSON)                  │
                │ erzeugt Kopf, Fuß, Raster und        ──────►│ Grundansicht als HTML         │
                │   Großansicht als fertiges HTML             │   (Kopf, Fuß, Raster, Bilder) │
@@ -92,20 +99,50 @@ Grenzen gegenüber der Großansicht mit JavaScript:
   nur, wenn das Album weitere Widgets enthält.)
 - Wortlaut und Aussehen (nach DESIGN.md) sind bei der Umsetzung festzulegen.
 
+
+### 3.3 Ereignisse zwischen den Widgets
+
+- Widgets und Rumpf rufen einander nicht direkt auf. Sie lösen Ereignisse (`CustomEvent`) aus und hören auf
+  Ereignisse anderer.
+- Beispiel: Das Raster löst „Großansicht öffnen" aus und gibt mit, welche Bilder in welcher Reihenfolge
+  durchblättert werden und mit welchem es beginnt (SPEC 9.6: Reihenfolge des aufrufenden Widgets). Die
+  Großansicht hört darauf und öffnet sich.
+- Auch der Hell/Dunkel-Umschalter in der Großansicht (SPEC 6.2) wird so angebunden: Die Großansicht löst
+  „Thema umschalten" aus, der Rumpf schaltet um.
+- Offen bei der Umsetzung: Namen der Ereignisse, ihre Daten, und ob sie am `document` oder am auslösenden
+  Element ausgelöst werden (sie müssen auch aus einem Shadow DOM herauskommen, also `bubbles` und
+  `composed`). Die Ereignisse gehören zur Schnittstelle eines Widgets und werden mit ihm beschrieben.
+- Folge für fremde Seiten: Eine isoliert eingebundene Wanderung braucht die Großansicht-Component mit. Ohne
+  sie hat „Großansicht öffnen" keinen Empfänger.
+
+### 3.4 Bilddaten
+
+- Jedes Bild ist genau einmal eingebettet, und zwar im HTML der Grundansicht:
+  - Vorschauen im `<img>` des Rasters,
+  - große Bilder im `<img loading="lazy">` der Großansicht ohne JavaScript (3.1),
+  - Bilder, die nicht im Raster vorkommen (z. B. nur in einer Wanderung, SPEC 9.6), ebenfalls im HTML,
+    aber ohne JavaScript unsichtbar und nicht geladen. Vorschlag: in einem `<template>`-Element; dessen
+    Inhalt lädt der Browser nicht, JavaScript kann ihn aber lesen.
+- Das JSON enthält eine zentrale Bildtabelle (Kennung, Unterschrift, Datum, Maße, Ort der Bilddaten im HTML);
+  Widgets verweisen per Kennung darauf.
+- Auf einer fremden Seite gibt es diese Grundansicht nicht; wie eine isolierte Component dort an ihre Bilder
+  kommt, ist offen (8.4).
+
 ## 4. Die Widgets
 
-Bisherige Teile, die zu Web Components werden (Abgrenzung im Einzelnen offen, siehe 8.1):
+Bisherige Teile und was aus ihnen wird:
 
-| Teil | SPEC | Ohne JavaScript heute | Ohne JavaScript künftig (G2′) |
-|---|---|---|---|
-| Kopf und Fuß | 6.1 | vollständig | vollständig, dazu Hinweis auf fehlendes JavaScript (3.2) |
-| Fotoraster | 6.1 | vollständig | vollständig, alle Fotos der Galerie |
-| Großansicht | 6.3 | nicht vorhanden | einfach, per `:target` (3.1) |
-| Stationen | 6.4, 6.5 | vollständig, einklappbar | nichts |
-| Karte mit Wegpunkten | 6.5, 6.6 | vollständig, einklappbar | nichts |
-| Panorama | 6.7 | flacher Streifen | gewöhnliches Foto im Raster, ohne Großansicht |
-| Hell/Dunkel-Umschalter | 6.2 | Systemeinstellung, kein Umschalter | Systemeinstellung, kein Umschalter |
-| Wanderung (geplant) | WANDERUNG.md | Abschnittskopf und Kennzahlen (WANDERUNG 13.1) | nichts |
+| Teil | SPEC | Künftig | Ohne JavaScript heute | Ohne JavaScript künftig (G2′) |
+|---|---|---|---|---|
+| Kopf und Fuß | 6.1 | Rumpf | vollständig | vollständig, dazu Hinweis auf fehlendes JavaScript (3.2) |
+| Hell/Dunkel samt Umschalter | 6.2 | Rumpf | Systemeinstellung, kein Umschalter | Systemeinstellung, kein Umschalter |
+| Schrift | 6.1 | Rumpf | vorhanden | vorhanden |
+| Fotoraster | 6.1 | Component | vollständig | vollständig, alle Fotos der Galerie |
+| Großansicht | 6.3 | Component | nicht vorhanden | einfach, per `:target` (3.1) |
+| Stationen | 6.4, 6.5 | Component | vollständig, einklappbar | nichts |
+| Karte mit Wegpunkten | 6.5, 6.6 | Component | vollständig, einklappbar | nichts |
+| Panorama | 6.7 | Component | flacher Streifen | gewöhnliches Foto im Raster, ohne Großansicht |
+| Wanderung (geplant) | WANDERUNG.md | Component | Abschnittskopf und Kennzahlen (WANDERUNG 13.1) | nichts |
 
 ## 5. Bau
 
@@ -141,24 +178,13 @@ Einzelheiten werden festgelegt, wenn die Architektur steht (siehe 8.7).
 
 ### 8.1 Rumpf und Zuschnitt der Widgets
 
-Was bleibt im Rumpf: nur Kopf, Fuß, Schrift und Hell/Dunkel, oder werden auch Kopf und Fuß Widgets? Die
-Großansicht wird von mehreren Widgets geöffnet (Raster, Wanderung). Vorschlag: eine eigene Component, die die
-anderen aufrufen. Wie sie miteinander reden (Ereignisse, Methoden), ist festzulegen.
+*Entschieden:* Rumpf mit Schrift, Hell/Dunkel, Kopf und Fuß; Großansicht als eigene Component; Ereignisse
+zwischen den Widgets. Siehe 2 und 3.3.
 
-### 8.2 Bilder im JSON
+### 8.2 Bilder
 
-Heute stecken die Vorschauen im `<img>` des Rasters; jedes Bild ist einmal eingebettet (SPEC 9.6).
-Vorschlag:
-
-- Die Bilddaten selbst stehen nicht im JSON, sondern im HTML der Grundansicht: Vorschauen im `<img>` des
-  Rasters, große Bilder im `<img>` der Großansicht ohne JavaScript (3.1). So ist jedes Bild einmal
-  eingebettet, und G2′ kostet keinen zusätzlichen Platz.
-- Das JSON enthält eine zentrale Bildtabelle (Kennung, Unterschrift, Datum, Maße); Widgets verweisen per
-  Kennung darauf und holen sich die Bilddaten aus dem HTML.
-- Bilder, die nicht im Raster stehen (nur in einem Widget wie der Wanderung, SPEC 9.6), brauchen einen eigenen
-  Ort, z. B. `<script type="application/json">`-Blöcke, die der Bau direkt in die Datei schreibt.
-- Auf einer fremden Seite gibt es diese Grundansicht nicht. Eine isoliert eingebundene Component braucht ihre
-  Bilder deshalb auf anderem Weg (siehe 8.4).
+*Entschieden:* Bilddaten im HTML der Grundansicht, auch die, die nicht im Raster vorkommen; das JSON verweist
+darauf. Siehe 2 und 3.4.
 
 ### 8.3 Grundansicht erzeugen
 
