@@ -24,6 +24,17 @@ Der Bau setzt beides zu **einer** HTML-Datei zusammen, in der alles eingebettet 
 - **Nur verwendete Widgets:** In die Datei kommen nur die Widgets, die die `album.toml` tatsächlich benutzt.
 - **Daten als JSON:** Die Rumpfseite enthält die Daten des Albums als JSON. Die Web Components lesen sie als
   Eingabe und rendern daraus ihre Darstellung.
+- **Eingabe nur als JSON im Element:** Ein Widget bekommt seine Daten ausschließlich als JSON in seinem
+  Element (z. B. `<script type="application/json">` als Kind). Nachladen per Adresse (`src="…"`) gibt es
+  nicht, auch nicht auf fremden Seiten.
+- **Keine Kacheln vom Server:** Auch auf fremden Seiten lädt ein Widget keine Kacheln nach; sie stecken in
+  seinen Daten (G1 gilt auch für isoliert eingebundene Widgets).
+- **Shadow DOM:** Jede Component kapselt ihre Darstellung im Shadow DOM. Farben kommen über CSS-Variablen
+  hinein, so dass Hell/Dunkel von außen gesteuert wird.
+- **Schrift von außen festlegbar:** Jedes Widget bietet eine Schnittstelle, über die man von außen die Schrift
+  festlegt. Im Album nehmen die Widgets standardmäßig die eingebettete Schrift der Rumpfseite.
+- **Components bauen auf der Grundansicht auf:** Raster und Großansicht übernehmen das HTML, das der Bau für
+  die Grundansicht schreibt (Bilder, Texte, Reihenfolge), statt es aus dem JSON neu zu erzeugen.
 - **Alle Teile außer dem Rumpf werden Web Components:** Alle bisherigen Teile des Albums werden durch Web
   Components ersetzt, bis auf das, was im Rumpf bleibt. Was es heute gibt, steht in Abschnitt 4.
 - **Im Rumpf bleiben** Schrift, Hell/Dunkel (Farben und Umschalter), Kopf und Fuß. Sie werden keine eigenen
@@ -95,8 +106,10 @@ Grenzen gegenüber der Großansicht mit JavaScript:
 
 - Ein `<noscript>`-Block unter dem Kopf sagt, dass JavaScript abgeschaltet ist und deshalb nur die Fotos zu
   sehen sind; mit JavaScript erscheinen auch die übrigen Teile (Karte, Stationen, Wanderung usw.).
-- Der Hinweis erscheint immer ohne JavaScript, auch wenn das Album nur aus Fotos besteht. (Annahme; alternativ
-  nur, wenn das Album weitere Widgets enthält.)
+- Der Hinweis erscheint nur, wenn das Album Widgets enthält, die ohne JavaScript fehlen (Stationen, Karte,
+  Wanderung …). Ein Album, das nur aus Fotos besteht, zeigt ihn nicht (Entscheidung des Nutzers).
+- Panoramen zählen als Fotos: Sie stehen ohne JavaScript als flacher Streifen im Raster, lösen den Hinweis
+  also allein nicht aus. (Annahme, noch zu bestätigen.)
 - Wortlaut und Aussehen (nach DESIGN.md) sind bei der Umsetzung festzulegen.
 
 
@@ -125,8 +138,9 @@ Grenzen gegenüber der Großansicht mit JavaScript:
     Inhalt lädt der Browser nicht, JavaScript kann ihn aber lesen.
 - Das JSON enthält eine zentrale Bildtabelle (Kennung, Unterschrift, Datum, Maße, Ort der Bilddaten im HTML);
   Widgets verweisen per Kennung darauf.
-- Auf einer fremden Seite gibt es diese Grundansicht nicht; wie eine isolierte Component dort an ihre Bilder
-  kommt, ist offen (8.4).
+- Auf einer fremden Seite gibt es diese Grundansicht nicht. Da ein Widget nichts nachlädt (Abschnitt 2),
+  müssen seine Bilder dort im Element selbst stecken, etwa als `<img>` oder `<template>` neben dem JSON.
+  Die genaue Form ist bei der Umsetzung festzulegen.
 
 ## 4. Die Widgets
 
@@ -160,7 +174,13 @@ folgt:
 - Sie bringt alles mit, was sie selbst braucht, und hängt nicht von CSS oder JavaScript der Rumpfseite ab.
 - Ihre Eingabe ist ein festgelegtes, dokumentiertes Datenformat. Dieses Format ist eine Schnittstelle und
   braucht eine Versionsangabe.
-- Offen ist, woher sie auf einer fremden Seite ihre Daten, Kacheln und Schrift bekommt (siehe 8.4).
+- **Daten und Kacheln** stecken als JSON im Element; nachgeladen wird nichts (Abschnitt 2). Bilder siehe 3.4.
+- **Aussehen:** Shadow DOM; Farben über CSS-Variablen, Hell/Dunkel steuert die einbindende Seite.
+- **Schrift:** über die Schnittstelle des Widgets von außen festlegbar. Im Album ist es die eingebettete
+  Schrift der Rumpfseite. Auf einer fremden Seite ohne eigene Festlegung erbt das Widget deren Schrift.
+  (Technischer Hinweis: Eine im Dokument per `@font-face` eingebettete Schrift ist auch im Shadow DOM
+  verfügbar; die Schnittstelle kann daher eine CSS-Variable sein, z. B. für `font-family`.)
+- **Großansicht:** muss mit eingebunden werden (3.3).
 
 ## 7. Tests
 
@@ -188,22 +208,16 @@ darauf. Siehe 2 und 3.4.
 
 ### 8.3 Grundansicht erzeugen
 
-- Kopf, Fuß, Raster und Großansicht ohne JavaScript erzeugt der Bau in Python, die Components mit JavaScript
-  ihre volle Darstellung. Für diese vier Teile gibt es also doppelte Darstellungslogik. Vorschlag: Die
-  Components bauen auf dem vorhandenen HTML auf (Bilder, Texte, Reihenfolge), statt es aus dem JSON neu zu
-  erzeugen.
-- *Entschieden:* Panoramen ohne JavaScript als gewöhnliches Foto im Raster, ohne Großansicht; „alle Fotos"
-  heißt alle Fotos der Galerie; ohne JavaScript erscheint ein Hinweis (siehe 2, 3.1, 3.2).
-- Offen: Soll der Hinweis auch in einem Album erscheinen, das nur Fotos enthält (3.2)?
+*Entschieden:* Die Components bauen auf dem HTML der Grundansicht auf. Panoramen ohne JavaScript als
+gewöhnliches Foto im Raster, ohne Großansicht; „alle Fotos" heißt alle Fotos der Galerie; der Hinweis ohne
+JavaScript erscheint nur, wenn das Album mehr als Fotos enthält. Siehe 2, 3.1, 3.2.
+
+Noch zu bestätigen: Panoramen lösen den Hinweis allein nicht aus (3.2).
 
 ### 8.4 Widgets auf fremden Seiten
 
-- Daten: nur als JSON im Element, oder auch nachladen per Adresse (`src="…json"`)?
-- Kacheln: auf einer fremden Seite auch live von einem Kachelserver laden?
-- Shadow DOM: schützt das Widget vor fremdem CSS; Farben kommen weiter über CSS-Variablen hinein, so dass
-  hell und dunkel von außen steuerbar bleiben.
-- Schrift (rund 60 KB): gehört in den Rumpf, nicht in jede Component. Auf einer fremden Seite nimmt das Widget
-  dann deren Schrift. In Ordnung?
+*Entschieden:* Daten nur als JSON im Element, kein Nachladen; keine Kacheln vom Server; Shadow DOM mit Farben
+über CSS-Variablen; Schrift von außen festlegbar, im Album die eingebettete Schrift. Siehe 2 und 6.
 
 ### 8.5 Arbeitsteilung
 
