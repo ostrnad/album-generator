@@ -44,14 +44,40 @@ def fallseite(titel: str, inhalt: str, widget_daten: dict, bloecke: list[str], k
 <body>
 <div class="seite"><div class="inhalt"><main class="raster">
 {inhalt}
-</main></div></div>
+</main>
+<footer>Platz zum Scrollen: Testfall {html.escape(titel)}</footer>
+<div style="height:100vh"></div></div></div>
 {chr(10).join(bloecke)}
 {fa.widget_daten_json(widget_daten)}
 <script>{fa.komponenten_js(komponenten)}{fa.UEBERGABE_JS}</script>
+<script>{PROTOKOLL_JS}</script>
 </body>
 </html>
 """
 
+
+# Mit #protokoll an der Adresse zeigt eine Fallseite oben ein Protokoll der Touch-Ereignisse: Art, Anzahl der
+# Finger, ob der Browser die Geste noch abgeben kann (cancelable) und ob die Component sie übernommen hat
+# (defaultPrevented), dazu Seitenposition und lange Bildpausen (> 50 ms). Hilft bei Fehlern auf echten Handys.
+PROTOKOLL_JS = r"""
+(function(){
+if(location.hash!=="#protokoll")return;
+var box=document.createElement("pre"),zeilen=[],pausen=0,letzt=0,bewegt=0;
+box.style.cssText="position:fixed;left:0;right:0;top:0;z-index:99;margin:0;padding:6px 8px;font:11px/1.3 ui-monospace,monospace;background:rgba(0,0,0,.78);color:#fff;pointer-events:none;white-space:pre-wrap";
+document.body.appendChild(box);
+function zeig(z){zeilen.push(z);if(zeilen.length>14)zeilen.shift();box.textContent="Pausen >50ms: "+pausen+"\n"+zeilen.join("\n")}
+function bild(t){if(letzt&&t-letzt>50)pausen++;letzt=t;requestAnimationFrame(bild)}requestAnimationFrame(bild);
+["touchstart","touchmove","touchend","touchcancel","pointercancel"].forEach(function(art){
+  document.addEventListener(art,function(e){
+    if(art==="touchmove"){bewegt++;if(bewegt%5&&e.cancelable&&e.defaultPrevented)return}else bewegt=0;
+    var t=e.touches?e.touches[0]:null;
+    zeig(art+" f="+(e.touches?e.touches.length:"-")+" cancel="+e.cancelable+" prevent="+e.defaultPrevented+
+      (t?" x="+Math.round(t.clientX)+" y="+Math.round(t.clientY):"")+" scrollY="+Math.round(scrollY));
+  },{passive:true});
+});
+zeig("Protokoll aktiv");
+})();
+"""
 
 INDEX_CSS = """
 :root{--bg:#DCE3DD;--fg:#1F2A24;--muted:#4A584F;--rahmen:#B9C4BB;color-scheme:light}
@@ -108,7 +134,8 @@ def schreiben(ausgabe: Path, titel: str, einleitung: str, faelle: list[dict], ko
                          f'height="{hoehe}" data-basis="{f["name"]}" src="{f["name"]}-light.html"></iframe></div></div>')
         abschnitte.append(
             f'<section><h2>{html.escape(f["name"])}</h2><p>{html.escape(f["beschreibung"])} · '
-            f'<a data-basis="{f["name"]}" href="{f["name"]}-light.html">einzeln öffnen</a></p>'
+            f'<a data-basis="{f["name"]}" href="{f["name"]}-light.html">einzeln öffnen</a> · '
+            f'<a href="{f["name"]}-light.html#protokoll">mit Touch-Protokoll</a></p>'
             f'<div class="ansichten">{"".join(ansichten)}</div></section>')
     index = ausgabe / "index.html"
     index.write_text(f"""<!DOCTYPE html>
